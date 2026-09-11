@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_self_forwards_tagger.h"
 #include "history/view/history_view_draw_to_reply.h"
 #include "history/history.h"
+#include "plugins/plugin_manager.h"
 #include "history/history_drag_area.h"
 #include "history/history_inner_widget.h"
 #include "history/history_item_components.h"
@@ -2552,6 +2553,10 @@ void ChatWidget::sendTextWithTags(
 	if (!options.scheduled) {
 		_cornerButtons.clearReplyReturns();
 	}
+
+	textWithTags.text = Plugins::PluginManager::Instance().dispatchPreSend(
+		textWithTags.text,
+		_peer->id.value);
 
 	auto message = Api::MessageToSend(prepareSendAction(options));
 	message.textWithTags = textWithTags;

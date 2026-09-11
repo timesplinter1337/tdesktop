@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_streamed_drafts.h"
 #include "history/history_translation.h"
 #include "history/history_unread_things.h"
+#include "plugins/plugin_manager.h"
 #include "iv/editor/iv_editor_session.h"
 #include "core/ui_integration.h"
 #include "dialogs/ui/dialogs_layout.h"
@@ -1223,6 +1224,16 @@ not_null<HistoryItem*> History::addNewToBack(
 			? NewAddType::Outgoing
 			: NewAddType::RegularIncoming;
 		newItemAdded(item, type);
+	}
+
+	if (const auto message = item->toHistoryMessage()) {
+		Plugins::PluginManager::Instance().setSession(&session());
+		Plugins::PluginManager::Instance().dispatchMessageReceived(
+			message->originalText().text,
+			message->from()->id.value,
+			peer->id.value,
+			message->date(),
+			item->out());
 	}
 
 	owner().notifyHistoryChangeDelayed(this);

@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_stories.h"
 #include "data/data_user.h"
+#include "plugins/plugins_box.h"
 #include "info/info_memento.h"
 #include "info/profile/info_profile_badge.h"
 #include "settings/settings_common.h"
@@ -745,6 +746,12 @@ void MainMenu::setupMenu() {
 		{ &st::menuIconSettings }
 	)->setClickedCallback([=] {
 		controller->showSettings();
+	});
+	addAction(
+		rpl::single(u"Плагины (Lua)"_q),
+		{ &st::menuIconSettings }
+	)->setClickedCallback([=] {
+		controller->show(Box(Plugins::PluginsBox, controller));
 	});
 
 	_nightThemeToggle = addAction(

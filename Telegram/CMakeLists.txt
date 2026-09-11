@@ -1793,6 +1793,12 @@ PRIVATE
     profile/profile_block_widget.h
     profile/profile_cover_drop_area.cpp
     profile/profile_cover_drop_area.h
+    plugins/lua_core.cpp
+    plugins/lua_core.h
+    plugins/plugin_manager.cpp
+    plugins/plugin_manager.h
+    plugins/plugins_box.cpp
+    plugins/plugins_box.h
     settings/business/settings_away_message.cpp
     settings/business/settings_away_message.h
     settings/business/settings_shortcut_messages.cpp
