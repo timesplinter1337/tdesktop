@@ -613,15 +613,6 @@ void PluginManager::loadPluginFile(const QString &filePath, bool isEnabled) {
 			core.pop(L, 1);
 		}
 
-		if (info.enabled) {
-			if (core.getField(L, -1, "on_enable") && core.isFunction(L, -1)) {
-				core.pushValue(L, -2); // self
-				QString err;
-				core.pcall(L, 1, 0, err);
-			} else {
-				core.pop(L, 1);
-			}
-		}
 		core.pop(L, 1);
 	} else {
 		core.pop(L, 1);
@@ -637,6 +628,23 @@ void PluginManager::loadPluginFile(const QString &filePath, bool isEnabled) {
 		.arg(info.enabled));
 
 	_plugins.push_back(std::move(info));
+	auto &plugin = _plugins.back();
+
+	if (plugin.enabled) {
+		if (core.getGlobal(plugin.L, "Plugin") && core.isTable(plugin.L, -1)) {
+			if (core.getField(plugin.L, -1, "on_enable") && core.isFunction(plugin.L, -1)) {
+				core.pushValue(plugin.L, -2); // self
+				QString err;
+				if (!core.pcall(plugin.L, 1, 0, err)) {
+					plugin.lastError = err;
+					LOG(("PluginManager: Error in on_enable (%1): %2").arg(plugin.name).arg(err));
+				}
+			} else {
+				core.pop(plugin.L, 1);
+			}
+			core.pop(plugin.L, 1);
+		}
+	}
 }
 
 void PluginManager::reloadPlugins() {
@@ -935,7 +943,11 @@ QString PluginManager::getAppStyleSheet() const {
 
 void PluginManager::showToast(const QString &text) {
 	crl::on_main([=] {
-		Ui::Toast::Show(text);
+		if (QApplication::activeWindow() || !QApplication::topLevelWidgets().isEmpty()) {
+			Ui::Toast::Show(text);
+		} else {
+			LOG(("PluginManager: Toast (before window): %1").arg(text));
+		}
 	});
 }
 
