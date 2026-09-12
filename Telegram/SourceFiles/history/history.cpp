@@ -1226,13 +1226,13 @@ not_null<HistoryItem*> History::addNewToBack(
 		newItemAdded(item, type);
 	}
 
-	if (const auto message = item->toHistoryMessage()) {
+	if (!item->isService()) {
 		Plugins::PluginManager::Instance().setSession(&session());
 		Plugins::PluginManager::Instance().dispatchMessageReceived(
-			message->originalText().text,
-			message->from()->id.value,
+			item->originalText().text,
+			item->from()->id.value,
 			peer->id.value,
-			message->date(),
+			item->date(),
 			item->out());
 	}
 
