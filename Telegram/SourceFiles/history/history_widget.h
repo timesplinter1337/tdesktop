@@ -142,10 +142,15 @@ struct VoiceToSend;
 class BotKeyboard;
 class HistoryInner;
 
+namespace Plugins {
+class PluginManager;
+} // namespace Plugins
+
 class HistoryWidget final
 	: public Window::AbstractSectionWidget
 	, private HistoryView::CornerButtonsDelegate {
 public:
+	friend class Plugins::PluginManager;
 	using FieldHistoryAction = Ui::InputField::HistoryAction;
 	using RecordLock = HistoryView::Controls::RecordLock;
 	using VoiceRecordBar = HistoryView::Controls::VoiceRecordBar;
@@ -699,6 +704,7 @@ private:
 	void writeDrafts();
 	void writeDraftTexts();
 	void writeDraftCursors();
+public:
 	void setFieldText(
 		const TextWithTags &textWithTags,
 		TextUpdateEvents events = 0,
@@ -708,6 +714,7 @@ private:
 	void clearFieldText(
 		TextUpdateEvents events = 0,
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
+private:
 	[[nodiscard]] int fieldHeight() const;
 	[[nodiscard]] bool fieldOrDisabledShown() const;
 	[[nodiscard]] bool fieldHasSendText() const;

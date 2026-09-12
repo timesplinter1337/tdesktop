@@ -35,6 +35,8 @@
 #include "history/history_item.h"
 #include "history/history_widget.h"
 #include "window/window_session_controller.h"
+#include "api/api_editing.h"
+#include "data/data_histories.h"
 #include "apiwrap.h"
 #include "ui/toast/toast.h"
 #include "logs.h"
@@ -75,6 +77,13 @@ int Lua_UI_SetStyleSheet(lua_State *L) {
 	auto &core = LuaCore::Instance();
 	const auto css = core.toString(L, 1);
 	PluginManager::Instance().setAppStyleSheet(css);
+	return 0;
+}
+
+int Lua_UI_AddStyleSheet(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto css = core.toString(L, 1);
+	PluginManager::Instance().addAppStyleSheet(css);
 	return 0;
 }
 
@@ -505,6 +514,7 @@ void PluginManager::registerTelegramAPI(lua_State *L) {
 	// telegram.ui
 	core.createTable(L, 0, 8);
 	core.setFieldFunction(L, "set_style_sheet", Lua_UI_SetStyleSheet);
+	core.setFieldFunction(L, "add_style_sheet", Lua_UI_AddStyleSheet);
 	core.setFieldFunction(L, "get_style_sheet", Lua_UI_GetStyleSheet);
 	core.setFieldFunction(L, "show_toast", Lua_UI_ShowToast);
 	core.setFieldFunction(L, "copy", Lua_UI_Copy);
@@ -910,6 +920,15 @@ void PluginManager::setAppStyleSheet(const QString &css) {
 	});
 }
 
+void PluginManager::addAppStyleSheet(const QString &css) {
+	crl::on_main([=] {
+		_customStyleSheet += "\n" + css;
+		if (auto app = qApp) {
+			app->setStyleSheet(_customStyleSheet);
+		}
+	});
+}
+
 QString PluginManager::getAppStyleSheet() const {
 	return _customStyleSheet;
 }
@@ -1020,13 +1039,11 @@ void PluginManager::editMessage(uint64 peerId, int msgId, const QString &text) {
 	if (!peer) {
 		return;
 	}
-	const auto item = _session->data().message(peer, msgId);
+	const auto item = _session->data().message(peer, static_cast<MsgId>(msgId));
 	if (!item) {
 		return;
 	}
-	auto editData = Api::MessageToEdit(item);
-	editData.textWithTags = { text, {} };
-	_session->api().editMessage(std::move(editData));
+	Api::EditTextMessage(item, { text, {} }, {}, {}, nullptr, nullptr, false);
 }
 
 void PluginManager::deleteMessage(uint64 peerId, int msgId) {
@@ -1037,9 +1054,9 @@ void PluginManager::deleteMessage(uint64 peerId, int msgId) {
 	if (!peer) {
 		return;
 	}
-	if (const auto item = _session->data().message(peer, msgId)) {
-		item->destroy();
-	}
+	_session->data().histories().deleteMessages(
+		MessageIdsList{ FullMsgId(peer->id, static_cast<MsgId>(msgId)) },
+		true);
 }
 
 QString PluginManager::getInputText() const {
@@ -1076,7 +1093,8 @@ void PluginManager::httpRequest(
 		_network = std::make_unique<QNetworkAccessManager>();
 	}
 
-	QNetworkRequest req(QUrl(url));
+	QNetworkRequest req;
+	req.setUrl(QUrl(url));
 	for (auto it = headers.begin(); it != headers.end(); ++it) {
 		req.setRawHeader(it.key().toUtf8(), it.value().toUtf8());
 	}
@@ -1258,7 +1276,7 @@ void PluginManager::storageRemove(const QString &pluginId, const QString &key) {
 }
 
 QJsonObject PluginManager::storageAll(const QString &pluginId) {
-	storageGet(pluginId, QString(), QJsonValue());
+	(void)storageGet(pluginId, QString(), QJsonValue());
 	return _pluginStorageCache.value(pluginId);
 }
 

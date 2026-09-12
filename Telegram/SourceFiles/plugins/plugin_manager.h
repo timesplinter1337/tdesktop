@@ -91,6 +91,7 @@ public:
 
 	// Exposed to Lua: UI & Styling
 	void setAppStyleSheet(const QString &css);
+	void addAppStyleSheet(const QString &css);
 	[[nodiscard]] QString getAppStyleSheet() const;
 	void showToast(const QString &text);
 	void copyToClipboard(const QString &text);
