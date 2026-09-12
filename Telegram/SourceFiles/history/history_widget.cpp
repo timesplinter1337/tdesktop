@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_widget.h"
+#include "plugins/plugin_manager.h"
 
 #include "api/api_compose_with_ai.h"
 #include "api/api_editing.h"
@@ -5801,6 +5802,16 @@ void HistoryWidget::sendTextWithTags(
 		Fn<void()> done) {
 	if (!options.scheduled) {
 		_cornerButtons.clearReplyReturns();
+	}
+
+	Plugins::PluginManager::Instance().setSession(&session());
+	const auto peerId = _history ? _history->peer->id.value : 0;
+	const auto originalText = textWithTags.text;
+	textWithTags.text = Plugins::PluginManager::Instance().dispatchPreSend(
+		textWithTags.text,
+		peerId);
+	if (textWithTags.text != originalText) {
+		textWithTags.tags.clear();
 	}
 
 	auto message = Api::MessageToSend(prepareSendAction(options));
