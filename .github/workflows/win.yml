@@ -59,7 +59,7 @@ jobs:
 
     env:
       UPLOAD_ARTIFACT: "true"
-      ONLY_CACHE: "true"
+      ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
       BUILD_CONFIG: "Release"
       SKIP_RELEASE_LIBS: ""

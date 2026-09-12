@@ -177,7 +177,6 @@ void LuaCore::createTable(lua_State *L, int narr, int nrec) {
 
 void LuaCore::setFieldFunction(lua_State *L, const char *key, LuaCFunction fn) {
 	if (!_loaded || !L) return;
-	_lua_pushstring(L, key);
 	_lua_pushcclosure(L, fn, 0);
 	_lua_setfield(L, -2, key);
 }
