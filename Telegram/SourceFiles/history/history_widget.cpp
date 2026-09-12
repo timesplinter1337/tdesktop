@@ -517,6 +517,8 @@ HistoryWidget::HistoryWidget(
 
 	initTabbedSelector();
 
+	Plugins::PluginManager::Instance().setActiveHistoryWidget(this);
+
 	_attachToggle->setClickedCallback([=] {
 		const auto toggle = _attachBotsMenu && _attachBotsMenu->isHidden();
 		base::call_delayed(st::historyAttach.ripple.hideDuration, this, [=] {
@@ -5805,7 +5807,18 @@ void HistoryWidget::sendTextWithTags(
 	}
 
 	Plugins::PluginManager::Instance().setSession(&session());
+	Plugins::PluginManager::Instance().setSessionController(controller());
+	Plugins::PluginManager::Instance().setActiveHistoryWidget(this);
 	const auto peerId = _history ? _history->peer->id.value : 0;
+
+	if (Plugins::PluginManager::Instance().dispatchCommand(textWithTags.text, peerId)) {
+		clearFieldText();
+		if (done) {
+			done();
+		}
+		return;
+	}
+
 	const auto originalText = textWithTags.text;
 	textWithTags.text = Plugins::PluginManager::Instance().dispatchPreSend(
 		textWithTags.text,
@@ -10231,6 +10244,16 @@ void HistoryWidget::setFieldText(
 	}
 }
 
+TextWithTags HistoryWidget::getFieldTextWithTags() const {
+	return _field ? _field->getTextWithTags() : TextWithTags();
+}
+
+void HistoryWidget::insertFieldText(const QString &text) {
+	if (_field) {
+		_field->insertTag(text);
+	}
+}
+
 void HistoryWidget::clearFieldText(
 		TextUpdateEvents events,
 		FieldHistoryAction fieldHistoryAction) {
@@ -11502,6 +11525,7 @@ void HistoryWidget::synteticScrollToY(int y) {
 }
 
 HistoryWidget::~HistoryWidget() {
+	Plugins::PluginManager::Instance().clearActiveHistoryWidget(this);
 	if (_history) {
 		// Saving a draft on account switching.
 		saveFieldToHistoryLocalDraft();

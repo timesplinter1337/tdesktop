@@ -35,12 +35,20 @@ public:
 	void setFieldNumber(lua_State *L, const char *key, double val);
 	void setFieldInteger(lua_State *L, const char *key, int64_t val);
 	void setFieldBoolean(lua_State *L, const char *key, bool val);
+	void setField(lua_State *L, int idx, const char *key);
 	void setGlobal(lua_State *L, const char *name);
 
 	bool getGlobal(lua_State *L, const char *name);
 	bool getField(lua_State *L, int idx, const char *key);
 	bool isFunction(lua_State *L, int idx);
 	bool isTable(lua_State *L, int idx);
+	int type(lua_State *L, int idx);
+	bool next(lua_State *L, int idx);
+
+	// Registry references for async callbacks
+	int ref(lua_State *L);
+	void unref(lua_State *L, int r);
+	void pushRef(lua_State *L, int r);
 
 	void pushNil(lua_State *L);
 	void pushString(lua_State *L, const QString &str);
@@ -48,6 +56,9 @@ public:
 	void pushInteger(lua_State *L, int64_t val);
 	void pushBoolean(lua_State *L, bool val);
 	void pushValue(lua_State *L, int idx);
+
+	void pushJsonValue(lua_State *L, const class QJsonValue &val);
+	class QJsonValue toJsonValue(lua_State *L, int idx);
 
 	QString toString(lua_State *L, int idx);
 	int64_t toInteger(lua_State *L, int idx);
@@ -95,6 +106,11 @@ private:
 	void (*_lua_createtable)(lua_State *, int, int) = nullptr;
 	void (*_lua_settop)(lua_State *, int) = nullptr;
 	int (*_lua_gettop)(lua_State *) = nullptr;
+	int (*_luaL_ref)(lua_State *, int) = nullptr;
+	void (*_luaL_unref)(lua_State *, int, int) = nullptr;
+	void (*_lua_rawgeti)(lua_State *, int, int64_t) = nullptr;
+	void (*_lua_rawseti)(lua_State *, int, int64_t) = nullptr;
+	int (*_lua_next)(lua_State *, int) = nullptr;
 };
 
 } // namespace Plugins

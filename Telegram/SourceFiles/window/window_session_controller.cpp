@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_filters_menu.h"
 #include "window/section_widget.h"
 #include "window/window_separate_id.h"
+#include "plugins/plugin_manager.h"
 #include "info/channel_statistics/earn/info_channel_earn_list.h"
 #include "info/peer_gifts/info_peer_gifts_widget.h"
 #include "info/stories/info_stories_widget.h"
@@ -2344,7 +2345,9 @@ void SessionController::setActiveChatEntry(Dialogs::RowDescriptor row) {
 		_invitePeekTimer.cancel();
 	}
 	_activeChatEntry = row;
+	Plugins::PluginManager::Instance().setSessionController(this);
 	if (nowHistory) {
+		Plugins::PluginManager::Instance().dispatchChatChanged(nowHistory->peer->id.value);
 		nowHistory->setFakeUnreadWhileOpened(true);
 		if (const auto channel = nowHistory->peer->asChannel()
 			; channel && !channel->isForum()) {

@@ -703,6 +703,8 @@ private:
 		const TextWithTags &textWithTags,
 		TextUpdateEvents events = 0,
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
+	[[nodiscard]] TextWithTags getFieldTextWithTags() const;
+	void insertFieldText(const QString &text);
 	void clearFieldText(
 		TextUpdateEvents events = 0,
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
