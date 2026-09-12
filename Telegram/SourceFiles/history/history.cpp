@@ -1228,9 +1228,10 @@ not_null<HistoryItem*> History::addNewToBack(
 
 	if (!item->isService()) {
 		Plugins::PluginManager::Instance().setSession(&session());
+		const auto fromId = item->from() ? item->from()->id.value : peer->id.value;
 		Plugins::PluginManager::Instance().dispatchMessageReceived(
 			item->originalText().text,
-			item->from()->id.value,
+			fromId,
 			peer->id.value,
 			item->date(),
 			item->out());

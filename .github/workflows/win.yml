@@ -3,10 +3,8 @@ name: Windows.
 on:
   workflow_dispatch:
   push:
-    # Pushes to the canary branches run only canary.yml, see there.
-    branches-ignore:
-      - public-canary
-      - private-canary
+    branches:
+      - none
     paths-ignore:
       - 'docs/**'
       - '**.md'

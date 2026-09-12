@@ -6,6 +6,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QCoreApplication>
+#include <QSet>
 #include <crl/crl_on_main.h>
 
 #include "main/main_session.h"
@@ -55,6 +57,7 @@ int Lua_Log(lua_State *L) {
 PluginManager::PluginManager() {
 	ensurePluginsDirectoryExists();
 	LuaCore::Instance().initialize();
+	reloadPlugins();
 }
 
 PluginManager::~PluginManager() {
@@ -81,11 +84,18 @@ Main::Session *PluginManager::session() const {
 }
 
 QString PluginManager::pluginsDirectory() const {
+	const auto exeDir = QDir(QCoreApplication::applicationDirPath()).filePath("plugins");
+	if (QDir(exeDir).exists()) {
+		return exeDir;
+	}
 	const auto base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 	return QDir(base).filePath("plugins");
 }
 
 void PluginManager::ensurePluginsDirectoryExists() {
+	const auto exeDir = QDir(QCoreApplication::applicationDirPath()).filePath("plugins");
+	QDir(exeDir).mkpath(".");
+
 	const auto path = pluginsDirectory();
 	QDir dir(path);
 	if (!dir.exists()) {
@@ -211,6 +221,9 @@ void PluginManager::loadPluginFile(const QString &filePath) {
 
 void PluginManager::reloadPlugins() {
 	auto &core = LuaCore::Instance();
+	if (!core.isAvailable()) {
+		core.initialize();
+	}
 
 	// Close existing states
 	for (auto &p : _plugins) {
@@ -222,11 +235,30 @@ void PluginManager::reloadPlugins() {
 	_plugins.clear();
 
 	ensurePluginsDirectoryExists();
-	QDir dir(pluginsDirectory());
-	const auto entries = dir.entryInfoList({ "*.lua" }, QDir::Files, QDir::Name);
-	for (const auto &fileInfo : entries) {
-		loadPluginFile(fileInfo.absoluteFilePath());
+
+	QStringList candidateDirs;
+	candidateDirs.push_back(QDir(QCoreApplication::applicationDirPath()).filePath("plugins"));
+	candidateDirs.push_back(pluginsDirectory());
+	const auto roaming = QDir::homePath() + "/AppData/Roaming";
+	candidateDirs.push_back(roaming + "/TelegramDesktop/plugins");
+	candidateDirs.push_back(roaming + "/Telegram Desktop/plugins");
+
+	QSet<QString> seenFiles;
+	for (const auto &dirPath : candidateDirs) {
+		QDir dir(dirPath);
+		if (!dir.exists()) {
+			continue;
+		}
+		const auto entries = dir.entryInfoList({ "*.lua" }, QDir::Files, QDir::Name);
+		for (const auto &fileInfo : entries) {
+			const auto name = fileInfo.fileName();
+			if (!seenFiles.contains(name)) {
+				seenFiles.insert(name);
+				loadPluginFile(fileInfo.absoluteFilePath());
+			}
+		}
 	}
+	LOG(("PluginManager: Loaded %1 plugin(s)").arg(_plugins.size()));
 }
 
 const std::vector<PluginInfo> &PluginManager::plugins() const {
@@ -243,10 +275,19 @@ void PluginManager::setPluginEnabled(const QString &id, bool enabled) {
 }
 
 QString PluginManager::dispatchPreSend(const QString &text, uint64 peerId) {
+	if (_plugins.empty()) {
+		reloadPlugins();
+	}
+
 	auto &core = LuaCore::Instance();
 	if (!core.isAvailable()) {
 		return text;
 	}
+
+	LOG(("PluginManager: dispatchPreSend '%1' (peer=%2, plugins=%3)")
+		.arg(text)
+		.arg(peerId)
+		.arg(_plugins.size()));
 
 	QString currentText = text;
 	for (auto &p : _plugins) {
@@ -269,6 +310,7 @@ QString PluginManager::dispatchPreSend(const QString &text, uint64 peerId) {
 					core.pop(p.L, 1);
 				} else {
 					p.lastError = err;
+					LOG(("PluginManager: Error in on_pre_send (%1): %2").arg(p.name).arg(err));
 				}
 			} else {
 				core.pop(p.L, 1);
@@ -288,10 +330,20 @@ void PluginManager::dispatchMessageReceived(
 		uint64 peerId,
 		int32 date,
 		bool out) {
+	if (_plugins.empty()) {
+		reloadPlugins();
+	}
+
 	auto &core = LuaCore::Instance();
 	if (!core.isAvailable()) {
 		return;
 	}
+
+	LOG(("PluginManager: dispatchMessageReceived text='%1' from=%2 out=%3 (plugins=%4)")
+		.arg(text)
+		.arg(fromId)
+		.arg(out)
+		.arg(_plugins.size()));
 
 	for (auto &p : _plugins) {
 		if (!p.enabled || !p.L) {
@@ -313,6 +365,7 @@ void PluginManager::dispatchMessageReceived(
 				QString err;
 				if (!core.pcall(p.L, 2, 0, err)) {
 					p.lastError = err;
+					LOG(("PluginManager: Error in on_message (%1): %2").arg(p.name).arg(err));
 				}
 			} else {
 				core.pop(p.L, 1);
@@ -342,7 +395,9 @@ void PluginManager::sendMessage(uint64 peerId, const QString &text) {
 }
 
 void PluginManager::showToast(const QString &text) {
-	Ui::Toast::Show(text);
+	crl::on_main([=] {
+		Ui::Toast::Show(text);
+	});
 }
 
 } // namespace Plugins

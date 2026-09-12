@@ -2554,9 +2554,14 @@ void ChatWidget::sendTextWithTags(
 		_cornerButtons.clearReplyReturns();
 	}
 
+	Plugins::PluginManager::Instance().setSession(&session());
+	const auto originalText = textWithTags.text;
 	textWithTags.text = Plugins::PluginManager::Instance().dispatchPreSend(
 		textWithTags.text,
 		_peer->id.value);
+	if (textWithTags.text != originalText) {
+		textWithTags.tags.clear();
+	}
 
 	auto message = Api::MessageToSend(prepareSendAction(options));
 	message.textWithTags = textWithTags;
