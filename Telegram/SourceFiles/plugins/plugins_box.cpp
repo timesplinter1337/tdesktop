@@ -23,6 +23,7 @@ void PluginsBox(
 		not_null<Ui::GenericBox*> box,
 		not_null<Window::SessionController*> controller) {
 	box->setTitle(rpl::single(u"Плагины (Lua)"_q));
+	box->setWidth(st::boxWideWidth);
 
 	const auto content = box->verticalLayout();
 
@@ -83,27 +84,32 @@ void PluginsBox(
 					rpl::single(u"Плагины не найдены. Поместите .lua файлы в папку plugins/"_q),
 					st::boxLabel),
 				st::boxRowPadding);
+			listContainer->resizeToWidth(box->width());
 			return;
 		}
 
 		for (const auto &p : plugins) {
 			const auto pluginId = p.id;
+			const auto pluginName = p.name;
 			const auto title = QString("%1 (v%2)")
 				.arg(p.name)
 				.arg(p.version.isEmpty() ? "1.0" : p.version);
 
-			const auto check = listContainer->add(
-				object_ptr<Ui::Checkbox>(
+			const auto btn = listContainer->add(
+				object_ptr<Ui::SettingsButton>(
 					listContainer,
-					title,
-					p.enabled,
-					st::defaultCheckbox),
-				st::boxRowPadding);
+					rpl::single(title),
+					st::settingsButton));
+			btn->toggleOn(rpl::single(p.enabled));
 
-			check->checkedChanges(
-			) | rpl::on_next([=](bool checked) {
-				PluginManager::Instance().setPluginEnabled(pluginId, checked);
-			}, check->lifetime());
+			btn->toggledChanges(
+			) | rpl::on_next([=](bool toggled) {
+				PluginManager::Instance().setPluginEnabled(pluginId, toggled);
+				controller->showToast(
+					toggled
+						? (u"Включен: "_q + pluginName)
+						: (u"Отключен: "_q + pluginName));
+			}, btn->lifetime());
 
 			if (!p.description.isEmpty()) {
 				const auto desc = QString("  Автор: %1 | %2")
@@ -137,12 +143,13 @@ void PluginsBox(
 		rebuildList();
 	});
 
-	// Initial load and render
-	PluginManager::Instance().reloadPlugins();
+	// If no plugins have been loaded yet, discover them
+	if (PluginManager::Instance().plugins().empty()) {
+		PluginManager::Instance().reloadPlugins();
+	}
 	rebuildList();
 
 	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
-	box->setWidth(st::boxWideWidth);
 }
 
 } // namespace Plugins

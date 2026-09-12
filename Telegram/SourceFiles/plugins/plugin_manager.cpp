@@ -8,6 +8,10 @@
 #include <QStandardPaths>
 #include <QCoreApplication>
 #include <QSet>
+#include <QMap>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
 #include <crl/crl_on_main.h>
 
 #include "main/main_session.h"
@@ -118,6 +122,9 @@ void PluginManager::ensurePluginsDirectoryExists() {
 				"function Plugin:on_enable()\n"
 				"    telegram.log(\"Plugin \" .. self.name .. \" enabled!\")\n"
 				"end\n\n"
+				"function Plugin:on_disable()\n"
+				"    telegram.log(\"Plugin \" .. self.name .. \" disabled!\")\n"
+				"end\n\n"
 				"-- Hook for outgoing messages (pre-send)\n"
 				"function Plugin:on_pre_send(text, peer_id)\n"
 				"    if text == \".shrug\" then\n"
@@ -139,6 +146,36 @@ void PluginManager::ensurePluginsDirectoryExists() {
 	}
 }
 
+void PluginManager::saveConfig() {
+	QJsonObject root;
+	for (const auto &p : _plugins) {
+		root[p.id] = p.enabled;
+	}
+	const auto dir = pluginsDirectory();
+	QDir().mkpath(dir);
+	const auto path = QDir(dir).filePath("plugins_config.json");
+	QFile file(path);
+	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+		file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+	}
+}
+
+QMap<QString, bool> PluginManager::readSavedStates() {
+	QMap<QString, bool> states;
+	const auto path = QDir(pluginsDirectory()).filePath("plugins_config.json");
+	QFile file(path);
+	if (file.open(QIODevice::ReadOnly)) {
+		const auto doc = QJsonDocument::fromJson(file.readAll());
+		if (doc.isObject()) {
+			const auto obj = doc.object();
+			for (auto it = obj.begin(); it != obj.end(); ++it) {
+				states.insert(it.key(), it.value().toBool(true));
+			}
+		}
+	}
+	return states;
+}
+
 void PluginManager::registerTelegramAPI(lua_State *L) {
 	auto &core = LuaCore::Instance();
 	core.createTable(L, 0, 4);
@@ -148,7 +185,7 @@ void PluginManager::registerTelegramAPI(lua_State *L) {
 	core.setGlobal(L, "telegram");
 }
 
-void PluginManager::loadPluginFile(const QString &filePath) {
+void PluginManager::loadPluginFile(const QString &filePath, bool isEnabled) {
 	auto &core = LuaCore::Instance();
 	if (!core.isAvailable()) {
 		return;
@@ -179,7 +216,7 @@ void PluginManager::loadPluginFile(const QString &filePath) {
 	info.id = QFileInfo(filePath).fileName();
 	info.filePath = filePath;
 	info.L = L;
-	info.enabled = true;
+	info.enabled = isEnabled;
 
 	if (core.getGlobal(L, "Plugin") && core.isTable(L, -1)) {
 		if (core.getField(L, -1, "name")) {
@@ -199,13 +236,15 @@ void PluginManager::loadPluginFile(const QString &filePath) {
 			core.pop(L, 1);
 		}
 
-		// Call on_enable if exists
-		if (core.getField(L, -1, "on_enable") && core.isFunction(L, -1)) {
-			core.pushValue(L, -2); // self
-			QString err;
-			core.pcall(L, 1, 0, err);
-		} else {
-			core.pop(L, 1);
+		// Call on_enable only if plugin is enabled
+		if (info.enabled) {
+			if (core.getField(L, -1, "on_enable") && core.isFunction(L, -1)) {
+				core.pushValue(L, -2); // self
+				QString err;
+				core.pcall(L, 1, 0, err);
+			} else {
+				core.pop(L, 1);
+			}
 		}
 		core.pop(L, 1); // pop Plugin table
 	} else {
@@ -216,6 +255,11 @@ void PluginManager::loadPluginFile(const QString &filePath) {
 		info.name = info.id;
 	}
 
+	LOG(("PluginManager: Loaded '%1' (%2), enabled=%3")
+		.arg(info.name)
+		.arg(info.id)
+		.arg(info.enabled));
+
 	_plugins.push_back(std::move(info));
 }
 
@@ -223,6 +267,12 @@ void PluginManager::reloadPlugins() {
 	auto &core = LuaCore::Instance();
 	if (!core.isAvailable()) {
 		core.initialize();
+	}
+
+	// Remember current in-memory states or from config file
+	QMap<QString, bool> states = readSavedStates();
+	for (const auto &p : _plugins) {
+		states[p.id] = p.enabled;
 	}
 
 	// Close existing states
@@ -254,7 +304,8 @@ void PluginManager::reloadPlugins() {
 			const auto name = fileInfo.fileName();
 			if (!seenFiles.contains(name)) {
 				seenFiles.insert(name);
-				loadPluginFile(fileInfo.absoluteFilePath());
+				const bool isEnabled = states.value(name, true);
+				loadPluginFile(fileInfo.absoluteFilePath(), isEnabled);
 			}
 		}
 	}
@@ -268,7 +319,35 @@ const std::vector<PluginInfo> &PluginManager::plugins() const {
 void PluginManager::setPluginEnabled(const QString &id, bool enabled) {
 	for (auto &p : _plugins) {
 		if (p.id == id) {
+			if (p.enabled == enabled) {
+				return;
+			}
 			p.enabled = enabled;
+			LOG(("PluginManager: Plugin '%1' enabled set to %2").arg(id).arg(enabled));
+
+			auto &core = LuaCore::Instance();
+			if (p.L && core.isAvailable()) {
+				if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
+					const char *hook = enabled ? "on_enable" : "on_disable";
+					if (core.getField(p.L, -1, hook) && core.isFunction(p.L, -1)) {
+						core.pushValue(p.L, -2); // self
+						QString err;
+						if (!core.pcall(p.L, 1, 0, err)) {
+							LOG(("PluginManager: Error in %1 on %2: %3")
+								.arg(hook)
+								.arg(p.name)
+								.arg(err));
+						}
+					} else {
+						core.pop(p.L, 1);
+					}
+					core.pop(p.L, 1);
+				} else {
+					core.pop(p.L, 1);
+				}
+			}
+
+			saveConfig();
 			break;
 		}
 	}

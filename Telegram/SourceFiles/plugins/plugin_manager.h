@@ -1,7 +1,7 @@
-// This file is part of Telegram Desktop.
 #pragma once
 
 #include <QString>
+#include <QMap>
 #include <vector>
 #include <memory>
 #include "plugins/lua_core.h"
@@ -55,11 +55,14 @@ private:
 	~PluginManager();
 
 	void registerTelegramAPI(lua_State *L);
-	void loadPluginFile(const QString &filePath);
+	void loadPluginFile(const QString &filePath, bool isEnabled = true);
 	void ensurePluginsDirectoryExists();
+	void saveConfig();
+	[[nodiscard]] QMap<QString, bool> readSavedStates();
 
 	Main::Session *_session = nullptr;
 	std::vector<PluginInfo> _plugins;
 };
 
 } // namespace Plugins
+
