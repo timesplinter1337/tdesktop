@@ -59,7 +59,7 @@ jobs:
 
     env:
       UPLOAD_ARTIFACT: "true"
-      ONLY_CACHE: "false"
+      ONLY_CACHE: "true"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
       BUILD_CONFIG: "Release"
       SKIP_RELEASE_LIBS: ""
@@ -170,7 +170,7 @@ jobs:
           %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat %SKIP_RELEASE_LIBS% silent ${{ matrix.qt }}
 
       - name: Save Libraries cache.
-        if: steps.cache-libs.outputs.cache-hit != 'true'
+        if: false
         uses: actions/cache/save@v4
         with:
           path: |
@@ -182,7 +182,7 @@ jobs:
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2${{ env.CACHE_CONFIG }}-${{ env.CACHE_KEY }}-${{ github.run_id }}
 
       - name: Save Qt cache.
-        if: steps.cache-qt.outputs.cache-hit != 'true'
+        if: false
         uses: actions/cache/save@v4
         with:
           path: |
@@ -241,6 +241,7 @@ jobs:
       - name: Archive precompiled libraries for local download.
         run: |
           7z a -mx=1 -mmt=on "%RUNNER_TEMP%\Libraries-win64.zip" "%LibrariesPath%\*"
+          if %ERRORLEVEL% leq 1 (exit 0) else (exit %ERRORLEVEL%)
       - uses: actions/upload-artifact@v4
         name: Upload precompiled libraries artifact.
         with:
