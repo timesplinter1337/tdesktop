@@ -170,7 +170,7 @@ jobs:
           %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat %SKIP_RELEASE_LIBS% silent ${{ matrix.qt }}
 
       - name: Save Libraries cache.
-        if: always()
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -182,7 +182,7 @@ jobs:
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2${{ env.CACHE_CONFIG }}-${{ env.CACHE_KEY }}-${{ github.run_id }}
 
       - name: Save Qt cache.
-        if: always()
+        if: steps.cache-qt.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -255,7 +255,7 @@ jobs:
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
           %TDESKTOP_BUILD_DEFINE%
 
-          cmake --build ..\out --config Release --parallel
+          cmake --build ..\out --config Release --target Telegram Updater --parallel
 
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')

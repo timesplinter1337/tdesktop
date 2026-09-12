@@ -332,7 +332,8 @@ void PluginManager::sendMessage(uint64 peerId, const QString &text) {
 		return;
 	}
 
-	auto action = Api::SendAction(peer);
+	const auto history = _session->data().history(peer);
+	auto action = Api::SendAction(history);
 	auto message = Api::MessageToSend(action);
 	message.textWithTags = { text, {} };
 	_session->api().sendMessage(std::move(message));
