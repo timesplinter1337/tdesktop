@@ -396,6 +396,9 @@ void PluginManager::setSessionController(Window::SessionController *controller) 
 	_sessionController = controller;
 	if (controller) {
 		_session = &controller->session();
+		if (!_customStyleSheet.isEmpty() && qApp) {
+			qApp->setStyleSheet(_customStyleSheet);
+		}
 	}
 }
 
@@ -920,19 +923,19 @@ void PluginManager::dispatchChatChanged(uint64 peerId) {
 }
 
 void PluginManager::setAppStyleSheet(const QString &css) {
+	_customStyleSheet = css;
 	crl::on_main([=] {
-		_customStyleSheet = css;
-		if (auto app = qApp) {
-			app->setStyleSheet(css);
+		if (_sessionController && qApp) {
+			qApp->setStyleSheet(css);
 		}
 	});
 }
 
 void PluginManager::addAppStyleSheet(const QString &css) {
+	_customStyleSheet += "\n" + css;
 	crl::on_main([=] {
-		_customStyleSheet += "\n" + css;
-		if (auto app = qApp) {
-			app->setStyleSheet(_customStyleSheet);
+		if (_sessionController && qApp) {
+			qApp->setStyleSheet(_customStyleSheet);
 		}
 	});
 }
@@ -943,10 +946,10 @@ QString PluginManager::getAppStyleSheet() const {
 
 void PluginManager::showToast(const QString &text) {
 	crl::on_main([=] {
-		if (QApplication::activeWindow() || !QApplication::topLevelWidgets().isEmpty()) {
+		if (_sessionController) {
 			Ui::Toast::Show(text);
 		} else {
-			LOG(("PluginManager: Toast (before window): %1").arg(text));
+			LOG(("PluginManager: Toast (controller not ready): %1").arg(text));
 		}
 	});
 }
