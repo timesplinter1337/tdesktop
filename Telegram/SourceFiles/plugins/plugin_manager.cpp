@@ -11,6 +11,8 @@
 #include "main/main_session.h"
 #include "data/data_session.h"
 #include "data/data_peer.h"
+#include "data/data_thread.h"
+#include "history/history.h"
 #include "apiwrap.h"
 #include "ui/toast/toast.h"
 #include "logs.h"
@@ -333,7 +335,7 @@ void PluginManager::sendMessage(uint64 peerId, const QString &text) {
 	}
 
 	const auto history = _session->data().history(peer);
-	auto action = Api::SendAction(history);
+	auto action = Api::SendAction(static_cast<Data::Thread*>(history.get()));
 	auto message = Api::MessageToSend(action);
 	message.textWithTags = { text, {} };
 	_session->api().sendMessage(std::move(message));
