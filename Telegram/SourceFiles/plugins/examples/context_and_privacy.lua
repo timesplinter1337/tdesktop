@@ -1,9 +1,10 @@
-PLUGIN = {
+Plugin = {
     name = "UI Menus & Privacy",
     description = "Контекстные меню для сообщений и чатов, нативные диалоги, буфер обмена и Ghost Mode (/ghost, /notyping, /noread)",
     version = "1.1.0",
     author = "timesplinter"
 }
+PLUGIN = Plugin
 
 function on_enable()
     -- 1. Контекстное меню сообщения (правый клик по сообщению в истории)
@@ -17,7 +18,9 @@ function on_enable()
         local quote_prompt = "> " .. (msg.text or "")
         telegram.ui.prompt("Цитирование сообщения", "Введите комментарий...", quote_prompt, function(res)
             if res and #res > 0 then
-                telegram.ui.set_input_text(res)
+                if telegram.input and telegram.input.set_text then
+                    telegram.input.set_text(res)
+                end
                 telegram.ui.show_toast("Цитата помещена в строку ввода!")
             end
         end)
@@ -53,7 +56,11 @@ function on_enable()
     telegram.ui.show_toast("Плагин UI Menus & Privacy активирован!")
 end
 
-function on_command(cmd, args)
+function Plugin:on_enable()
+    on_enable()
+end
+
+function on_command(cmd, args, peer_id)
     if cmd == "/ghost" or cmd == "ghost" then
         local current = telegram.privacy.is_ghost_mode()
         local new_val = not current
@@ -87,4 +94,8 @@ function on_command(cmd, args)
         return true
     end
     return false
+end
+
+function Plugin:on_command(cmd, args, peer_id)
+    return on_command(cmd, args, peer_id)
 end

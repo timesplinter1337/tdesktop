@@ -130,6 +130,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h" // st::boxLabel
+#include "plugins/plugin_manager.h"
 
 namespace Window {
 namespace {
@@ -1603,6 +1604,7 @@ SessionController::SessionController(
 			Theme::CheckChatThemeWallPaper(this);
 		});
 	}
+	Plugins::PluginManager::Instance().setSessionController(this);
 	style::PaletteChanged(
 	) | rpl::on_next([=] {
 		for (auto &[key, value] : _customChatThemes) {

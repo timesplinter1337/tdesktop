@@ -52,6 +52,48 @@ namespace Plugins {
 
 namespace {
 
+bool InvokeEnableDisableHook(lua_State *L, bool enabled, QString &err) {
+	auto &core = LuaCore::Instance();
+	const char *hook = enabled ? "on_enable" : "on_disable";
+
+	// 1. Check Plugin table
+	if (core.getGlobal(L, "Plugin") && core.isTable(L, -1)) {
+		if (core.getField(L, -1, hook) && core.isFunction(L, -1)) {
+			core.pushValue(L, -2); // self
+			const bool ok = core.pcall(L, 1, 0, err);
+			core.pop(L, 1); // pop Plugin
+			return ok;
+		}
+		core.pop(L, 1); // pop field
+		core.pop(L, 1); // pop Plugin
+	} else {
+		core.pop(L, 1);
+	}
+
+	// 2. Check PLUGIN table
+	if (core.getGlobal(L, "PLUGIN") && core.isTable(L, -1)) {
+		if (core.getField(L, -1, hook) && core.isFunction(L, -1)) {
+			core.pushValue(L, -2); // self
+			const bool ok = core.pcall(L, 1, 0, err);
+			core.pop(L, 1); // pop PLUGIN
+			return ok;
+		}
+		core.pop(L, 1); // pop field
+		core.pop(L, 1); // pop PLUGIN
+	} else {
+		core.pop(L, 1);
+	}
+
+	// 3. Check global function on_enable() / on_disable()
+	if (core.getGlobal(L, hook) && core.isFunction(L, -1)) {
+		return core.pcall(L, 0, 0, err);
+	} else {
+		core.pop(L, 1);
+	}
+
+	return false;
+}
+
 // C-callbacks for Lua: Core
 int Lua_Log(lua_State *L) {
 	auto &core = LuaCore::Instance();
@@ -525,6 +567,10 @@ void PluginManager::setSessionController(Window::SessionController *controller) 
 		if (!_customStyleSheet.isEmpty() && qApp) {
 			qApp->setStyleSheet(_customStyleSheet);
 		}
+		for (const auto &text : _pendingToasts) {
+			Ui::Toast::Show(text);
+		}
+		_pendingToasts.clear();
 	}
 }
 
@@ -749,27 +795,33 @@ void PluginManager::loadPluginFile(const QString &filePath, bool isEnabled) {
 	info.L = L;
 	info.enabled = isEnabled;
 
-	if (core.getGlobal(L, "Plugin") && core.isTable(L, -1)) {
-		if (core.getField(L, -1, "name")) {
-			info.name = core.toString(L, -1);
+	auto readTableMetadata = [&](const char *tableName) -> bool {
+		if (core.getGlobal(L, tableName) && core.isTable(L, -1)) {
+			if (core.getField(L, -1, "name")) {
+				info.name = core.toString(L, -1);
+				core.pop(L, 1);
+			}
+			if (core.getField(L, -1, "author")) {
+				info.author = core.toString(L, -1);
+				core.pop(L, 1);
+			}
+			if (core.getField(L, -1, "version")) {
+				info.version = core.toString(L, -1);
+				core.pop(L, 1);
+			}
+			if (core.getField(L, -1, "description")) {
+				info.description = core.toString(L, -1);
+				core.pop(L, 1);
+			}
 			core.pop(L, 1);
-		}
-		if (core.getField(L, -1, "author")) {
-			info.author = core.toString(L, -1);
+			return !info.name.isEmpty();
+		} else {
 			core.pop(L, 1);
+			return false;
 		}
-		if (core.getField(L, -1, "version")) {
-			info.version = core.toString(L, -1);
-			core.pop(L, 1);
-		}
-		if (core.getField(L, -1, "description")) {
-			info.description = core.toString(L, -1);
-			core.pop(L, 1);
-		}
-
-		core.pop(L, 1);
-	} else {
-		core.pop(L, 1);
+	};
+	if (!readTableMetadata("Plugin")) {
+		readTableMetadata("PLUGIN");
 	}
 
 	if (info.name.isEmpty()) {
@@ -785,18 +837,10 @@ void PluginManager::loadPluginFile(const QString &filePath, bool isEnabled) {
 	auto &plugin = _plugins.back();
 
 	if (plugin.enabled) {
-		if (core.getGlobal(plugin.L, "Plugin") && core.isTable(plugin.L, -1)) {
-			if (core.getField(plugin.L, -1, "on_enable") && core.isFunction(plugin.L, -1)) {
-				core.pushValue(plugin.L, -2); // self
-				QString err;
-				if (!core.pcall(plugin.L, 1, 0, err)) {
-					plugin.lastError = err;
-					LOG(("PluginManager: Error in on_enable (%1): %2").arg(plugin.name).arg(err));
-				}
-			} else {
-				core.pop(plugin.L, 1);
-			}
-			core.pop(plugin.L, 1);
+		QString err;
+		if (!InvokeEnableDisableHook(plugin.L, true, err) && !err.isEmpty()) {
+			plugin.lastError = err;
+			LOG(("PluginManager: Error in on_enable (%1): %2").arg(plugin.name).arg(err));
 		}
 	}
 }
@@ -871,23 +915,12 @@ void PluginManager::setPluginEnabled(const QString &id, bool enabled) {
 					clearTimersForState(p.L);
 				}
 
-				if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
-					const char *hook = enabled ? "on_enable" : "on_disable";
-					if (core.getField(p.L, -1, hook) && core.isFunction(p.L, -1)) {
-						core.pushValue(p.L, -2); // self
-						QString err;
-						if (!core.pcall(p.L, 1, 0, err)) {
-							LOG(("PluginManager: Error in %1 on %2: %3")
-								.arg(hook)
-								.arg(p.name)
-								.arg(err));
-						}
-					} else {
-						core.pop(p.L, 1);
-					}
-					core.pop(p.L, 1);
-				} else {
-					core.pop(p.L, 1);
+				QString err;
+				if (!InvokeEnableDisableHook(p.L, enabled, err) && !err.isEmpty()) {
+					LOG(("PluginManager: Error in %1 on %2: %3")
+						.arg(enabled ? "on_enable" : "on_disable")
+						.arg(p.name)
+						.arg(err));
 				}
 			}
 
@@ -913,29 +946,64 @@ QString PluginManager::dispatchPreSend(const QString &text, uint64 peerId) {
 			continue;
 		}
 
-		if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
-			if (core.getField(p.L, -1, "on_pre_send") && core.isFunction(p.L, -1)) {
-				core.pushValue(p.L, -2); // self
-				core.pushString(p.L, currentText);
-				core.pushInteger(p.L, static_cast<int64_t>(peerId));
+		auto tryTable = [&](const char *tableName, const char *hookName) -> bool {
+			if (core.getGlobal(p.L, tableName) && core.isTable(p.L, -1)) {
+				if (core.getField(p.L, -1, hookName) && core.isFunction(p.L, -1)) {
+					core.pushValue(p.L, -2); // self
+					core.pushString(p.L, currentText);
+					core.pushInteger(p.L, static_cast<int64_t>(peerId));
 
-				QString err;
-				if (core.pcall(p.L, 3, 1, err)) {
-					const auto res = core.toString(p.L, -1);
-					if (!res.isEmpty()) {
-						currentText = res;
+					QString err;
+					if (core.pcall(p.L, 3, 1, err)) {
+						const auto res = core.toString(p.L, -1);
+						if (!res.isEmpty()) {
+							currentText = res;
+						}
+						core.pop(p.L, 1);
+						core.pop(p.L, 1);
+						return true;
+					} else {
+						p.lastError = err;
+						LOG(("PluginManager: Error in %1 (%2): %3").arg(hookName).arg(p.name).arg(err));
 					}
-					core.pop(p.L, 1);
 				} else {
-					p.lastError = err;
-					LOG(("PluginManager: Error in on_pre_send (%1): %2").arg(p.name).arg(err));
+					core.pop(p.L, 1);
 				}
+				core.pop(p.L, 1);
 			} else {
 				core.pop(p.L, 1);
 			}
-			core.pop(p.L, 1);
-		} else {
-			core.pop(p.L, 1);
+			return false;
+		};
+
+		bool called = tryTable("Plugin", "on_pre_send")
+			|| tryTable("Plugin", "on_message_send")
+			|| tryTable("PLUGIN", "on_pre_send")
+			|| tryTable("PLUGIN", "on_message_send");
+
+		if (!called) {
+			auto tryGlobal = [&](const char *hookName) -> bool {
+				if (core.getGlobal(p.L, hookName) && core.isFunction(p.L, -1)) {
+					core.pushString(p.L, currentText);
+					core.pushInteger(p.L, static_cast<int64_t>(peerId));
+					QString err;
+					if (core.pcall(p.L, 2, 1, err)) {
+						const auto res = core.toString(p.L, -1);
+						if (!res.isEmpty()) {
+							currentText = res;
+						}
+						core.pop(p.L, 1);
+						return true;
+					} else {
+						p.lastError = err;
+						LOG(("PluginManager: Error in %1 (%2): %3").arg(hookName).arg(p.name).arg(err));
+					}
+				} else {
+					core.pop(p.L, 1);
+				}
+				return false;
+			};
+			tryGlobal("on_message_send") || tryGlobal("on_pre_send");
 		}
 	}
 
@@ -962,28 +1030,63 @@ void PluginManager::dispatchMessageReceived(
 			continue;
 		}
 
-		if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
-			if (core.getField(p.L, -1, "on_message") && core.isFunction(p.L, -1)) {
-				core.pushValue(p.L, -2); // self
+		auto tryTable = [&](const char *tableName) -> bool {
+			if (core.getGlobal(p.L, tableName) && core.isTable(p.L, -1)) {
+				if (core.getField(p.L, -1, "on_message") && core.isFunction(p.L, -1)) {
+					core.pushValue(p.L, -2); // self
 
-				core.createTable(p.L, 0, 5);
-				core.setFieldString(p.L, "text", text);
-				core.setFieldInteger(p.L, "from_id", static_cast<int64_t>(fromId));
-				core.setFieldInteger(p.L, "peer_id", static_cast<int64_t>(peerId));
-				core.setFieldInteger(p.L, "date", date);
-				core.setFieldBoolean(p.L, "out", out);
+					core.createTable(p.L, 0, 5);
+					core.setFieldString(p.L, "text", text);
+					core.setFieldInteger(p.L, "from_id", static_cast<int64_t>(fromId));
+					core.setFieldInteger(p.L, "peer_id", static_cast<int64_t>(peerId));
+					core.setFieldInteger(p.L, "date", date);
+					core.setFieldBoolean(p.L, "out", out);
 
-				QString err;
-				if (!core.pcall(p.L, 2, 0, err)) {
-					p.lastError = err;
-					LOG(("PluginManager: Error in on_message (%1): %2").arg(p.name).arg(err));
+					QString err;
+					if (!core.pcall(p.L, 2, 0, err)) {
+						p.lastError = err;
+						LOG(("PluginManager: Error in on_message (%1): %2").arg(p.name).arg(err));
+					}
+					core.pop(p.L, 1);
+					return true;
+				} else {
+					core.pop(p.L, 1);
 				}
+				core.pop(p.L, 1);
 			} else {
 				core.pop(p.L, 1);
 			}
-			core.pop(p.L, 1);
-		} else {
-			core.pop(p.L, 1);
+			return false;
+		};
+
+		bool called = tryTable("Plugin") || tryTable("PLUGIN");
+		if (!called) {
+			if (core.getGlobal(p.L, "on_message_received") && core.isFunction(p.L, -1)) {
+				core.pushInteger(p.L, static_cast<int64_t>(peerId));
+				core.pushString(p.L, text);
+				QString err;
+				if (!core.pcall(p.L, 2, 0, err)) {
+					p.lastError = err;
+					LOG(("PluginManager: Error in on_message_received (%1): %2").arg(p.name).arg(err));
+				}
+			} else {
+				core.pop(p.L, 1);
+				if (core.getGlobal(p.L, "on_message") && core.isFunction(p.L, -1)) {
+					core.createTable(p.L, 0, 5);
+					core.setFieldString(p.L, "text", text);
+					core.setFieldInteger(p.L, "from_id", static_cast<int64_t>(fromId));
+					core.setFieldInteger(p.L, "peer_id", static_cast<int64_t>(peerId));
+					core.setFieldInteger(p.L, "date", date);
+					core.setFieldBoolean(p.L, "out", out);
+					QString err;
+					if (!core.pcall(p.L, 1, 0, err)) {
+						p.lastError = err;
+						LOG(("PluginManager: Error in on_message (%1): %2").arg(p.name).arg(err));
+					}
+				} else {
+					core.pop(p.L, 1);
+				}
+			}
 		}
 	}
 }
@@ -995,9 +1098,12 @@ bool PluginManager::dispatchCommand(const QString &text, uint64 peerId) {
 	}
 
 	const auto spaceIdx = trimmed.indexOf(' ');
-	const auto cmd = (spaceIdx == -1)
+	const auto cmdWithoutSlash = (spaceIdx == -1)
 		? trimmed.mid(1)
 		: trimmed.mid(1, spaceIdx - 1);
+	const auto cmdWithSlash = (spaceIdx == -1)
+		? trimmed
+		: trimmed.left(spaceIdx);
 	const auto args = (spaceIdx == -1)
 		? QString()
 		: trimmed.mid(spaceIdx + 1).trimmed();
@@ -1007,38 +1113,84 @@ bool PluginManager::dispatchCommand(const QString &text, uint64 peerId) {
 		return false;
 	}
 
+	auto tryInvoke = [&](lua_State *L, const QString &cmdVal) -> bool {
+		// 1. Check Plugin table
+		if (core.getGlobal(L, "Plugin") && core.isTable(L, -1)) {
+			if (core.getField(L, -1, "on_command") && core.isFunction(L, -1)) {
+				core.pushValue(L, -2); // self
+				core.pushString(L, cmdVal);
+				core.pushString(L, args);
+				core.pushInteger(L, static_cast<int64_t>(peerId));
+
+				QString err;
+				if (core.pcall(L, 4, 1, err)) {
+					const bool h = core.toBoolean(L, -1);
+					core.pop(L, 1);
+					core.pop(L, 1);
+					if (h) return true;
+				} else {
+					core.pop(L, 1);
+				}
+			} else {
+				core.pop(L, 1);
+				core.pop(L, 1);
+			}
+		} else {
+			core.pop(L, 1);
+		}
+
+		// 2. Check PLUGIN table
+		if (core.getGlobal(L, "PLUGIN") && core.isTable(L, -1)) {
+			if (core.getField(L, -1, "on_command") && core.isFunction(L, -1)) {
+				core.pushValue(L, -2); // self
+				core.pushString(L, cmdVal);
+				core.pushString(L, args);
+				core.pushInteger(L, static_cast<int64_t>(peerId));
+
+				QString err;
+				if (core.pcall(L, 4, 1, err)) {
+					const bool h = core.toBoolean(L, -1);
+					core.pop(L, 1);
+					core.pop(L, 1);
+					if (h) return true;
+				} else {
+					core.pop(L, 1);
+				}
+			} else {
+				core.pop(L, 1);
+				core.pop(L, 1);
+			}
+		} else {
+			core.pop(L, 1);
+		}
+
+		// 3. Check global function on_command(cmd, args, peerId)
+		if (core.getGlobal(L, "on_command") && core.isFunction(L, -1)) {
+			core.pushString(L, cmdVal);
+			core.pushString(L, args);
+			core.pushInteger(L, static_cast<int64_t>(peerId));
+
+			QString err;
+			if (core.pcall(L, 3, 1, err)) {
+				const bool h = core.toBoolean(L, -1);
+				core.pop(L, 1);
+				if (h) return true;
+			}
+		} else {
+			core.pop(L, 1);
+		}
+
+		return false;
+	};
+
 	bool handled = false;
 	for (auto &p : _plugins) {
 		if (!p.enabled || !p.L) {
 			continue;
 		}
 
-		if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
-			if (core.getField(p.L, -1, "on_command") && core.isFunction(p.L, -1)) {
-				core.pushValue(p.L, -2); // self
-				core.pushString(p.L, cmd);
-				core.pushString(p.L, args);
-				core.pushInteger(p.L, static_cast<int64_t>(peerId));
-
-				QString err;
-				if (core.pcall(p.L, 4, 1, err)) {
-					if (core.toBoolean(p.L, -1)) {
-						handled = true;
-					}
-					core.pop(p.L, 1);
-				} else {
-					p.lastError = err;
-					LOG(("PluginManager: Error in on_command (%1): %2").arg(p.name).arg(err));
-				}
-			} else {
-				core.pop(p.L, 1);
-			}
-			core.pop(p.L, 1);
-		} else {
-			core.pop(p.L, 1);
-		}
-
-		if (handled) {
+		if (tryInvoke(p.L, cmdWithSlash) || tryInvoke(p.L, cmdWithoutSlash)) {
+			handled = true;
 			break;
 		}
 	}
@@ -1057,21 +1209,39 @@ void PluginManager::dispatchChatChanged(uint64 peerId) {
 			continue;
 		}
 
-		if (core.getGlobal(p.L, "Plugin") && core.isTable(p.L, -1)) {
-			if (core.getField(p.L, -1, "on_chat_changed") && core.isFunction(p.L, -1)) {
-				core.pushValue(p.L, -2); // self
+		auto tryTable = [&](const char *tableName) -> bool {
+			if (core.getGlobal(p.L, tableName) && core.isTable(p.L, -1)) {
+				if (core.getField(p.L, -1, "on_chat_changed") && core.isFunction(p.L, -1)) {
+					core.pushValue(p.L, -2); // self
+					core.pushInteger(p.L, static_cast<int64_t>(peerId));
+					QString err;
+					if (!core.pcall(p.L, 2, 0, err)) {
+						p.lastError = err;
+						LOG(("PluginManager: Error in on_chat_changed (%1): %2").arg(p.name).arg(err));
+					}
+					core.pop(p.L, 1);
+					return true;
+				} else {
+					core.pop(p.L, 1);
+				}
+				core.pop(p.L, 1);
+			} else {
+				core.pop(p.L, 1);
+			}
+			return false;
+		};
+
+		if (!tryTable("Plugin") && !tryTable("PLUGIN")) {
+			if (core.getGlobal(p.L, "on_chat_changed") && core.isFunction(p.L, -1)) {
 				core.pushInteger(p.L, static_cast<int64_t>(peerId));
 				QString err;
-				if (!core.pcall(p.L, 2, 0, err)) {
+				if (!core.pcall(p.L, 1, 0, err)) {
 					p.lastError = err;
 					LOG(("PluginManager: Error in on_chat_changed (%1): %2").arg(p.name).arg(err));
 				}
 			} else {
 				core.pop(p.L, 1);
 			}
-			core.pop(p.L, 1);
-		} else {
-			core.pop(p.L, 1);
 		}
 	}
 }
@@ -1103,7 +1273,8 @@ void PluginManager::showToast(const QString &text) {
 		if (_sessionController) {
 			Ui::Toast::Show(text);
 		} else {
-			LOG(("PluginManager: Toast (controller not ready): %1").arg(text));
+			_pendingToasts.push_back(text);
+			LOG(("PluginManager: Toast queued (controller not ready): %1").arg(text));
 		}
 	});
 }

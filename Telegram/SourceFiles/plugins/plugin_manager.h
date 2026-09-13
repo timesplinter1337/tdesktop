@@ -213,6 +213,8 @@ private:
 	bool _ghostMode = false;
 	bool _typingBlocked = false;
 	bool _readBlocked = false;
+
+	std::vector<QString> _pendingToasts;
 };
 
 } // namespace Plugins
