@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram Desktop Plugins — Документация</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header / Navbar -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M1 2.75A.75.75 0 011.75 2h12.5a.75.75 0 010 1.5H1.75A.75.75 0 011 2.75zm0 5A.75.75 0 011.75 7h12.5a.75.75 0 010 1.5H1.75A.75.75 0 011 7.75zM1.75 12a.75.75 0 000 1.5h12.5a.75.75 0 000-1.5H1.75z"/>
+        </svg>
+      </button>
+      <a href="#" class="brand-link">
+        <svg class="brand-logo" width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="12" fill="#2AABEE"/>
+          <path d="M5.5 11.5L18.5 6.5L15 18L11.5 14.5L9 16V13.5L16 8.5L8.5 13L5.5 11.5Z" fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-title">tdesktop <strong>Plugins</strong></span>
+      </a>
+      <span class="badge badge-version">v1.0.0 (lua 5.4)</span>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-bar" id="searchTrigger">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M11.5 7a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/>
+        </svg>
+        <span class="search-placeholder">Поиск по документации...</span>
+        <kbd class="search-kbd">/</kbd>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <a href="https://github.com/timesplinter1337/tdesktop/tree/lua-plugins" target="_blank" rel="noreferrer" class="icon-link" title="GitHub Репозиторий">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+      </a>
+      <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Сменить тему">
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM0 8a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H.75A.75.75 0 010 8zm13 0a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 0113 8zM2.343 13.657a.75.75 0 010-1.061l1.06-1.06a.75.75 0 111.062 1.06l-1.061 1.061a.75.75 0 01-1.061 0zm9.193-9.193a.75.75 0 010-1.06l1.061-1.061a.75.75 0 111.06 1.06l-1.06 1.061a.75.75 0 01-1.061 0z"/>
+        </svg>
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Layout Container -->
+  <div class="docs-layout">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar-left" id="sidebarLeft">
+      <nav class="nav-tree">
+        <div class="nav-group">
+          <div class="nav-group-title">Начало работы</div>
+          <a href="#quickstart" class="nav-link active">Быстрый старт</a>
+          <a href="#directory-structure" class="nav-link">Структура файлов</a>
+          <a href="#settings-gui" class="nav-link">Интерфейс настроек</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Архитектура плагина</div>
+          <a href="#plugin-manifest" class="nav-link">Метаданные PLUGIN</a>
+          <a href="#lifecycle-hooks" class="nav-link">Хуки событий (Hooks)</a>
+          <a href="#api-storage" class="nav-link">Хранилище данных</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Справочник API</div>
+          <a href="#api-ui" class="nav-link">telegram.ui</a>
+          <a href="#api-clipboard" class="nav-link">telegram.clipboard</a>
+          <a href="#api-privacy" class="nav-link">telegram.privacy</a>
+          <a href="#api-messages" class="nav-link">telegram.messages</a>
+          <a href="#api-commands" class="nav-link">telegram.command</a>
+          <a href="#api-timer" class="nav-link">telegram.timer</a>
+          <a href="#api-http" class="nav-link">telegram.http</a>
+          <a href="#api-storage" class="nav-link">telegram.storage</a>
+          <a href="#api-context" class="nav-link">telegram.user & chat</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Готовые примеры</div>
+          <a href="#example-theme" class="nav-link">Кастомизация UI и тем</a>
+          <a href="#example-context-menus" class="nav-link">Контекстные меню и диалоги</a>
+          <a href="#example-ghost-mode" class="nav-link">Режим невидимки (Ghost)</a>
+          <a href="#example-tools" class="nav-link">Инструменты и HTTP API</a>
+          <a href="#example-shrug" class="nav-link">Модификаторы сообщений</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Тонкости и отладка</div>
+          <a href="#gotchas-lifecycle" class="nav-link">Тайминги запуска и Qt</a>
+          <a href="#gotchas-crashes" class="nav-link">Типичные ошибки</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="docs-main">
+      <article class="docs-content">
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+          <span>Документация</span>
+          <span class="sep">/</span>
+          <span class="current">Telegram Desktop Plugins</span>
+        </div>
+
+        <h1 class="page-title">Плагины для Telegram Desktop</h1>
+        <p class="lead-text">
+          Встроенная среда выполнения Lua 5.4 внутри официального клиента Telegram Desktop. Плагины дают доступ к управлению стилями Qt (QSS), перехвату ввода, изменению сообщений перед отправкой, выполнению слэш-команд, асинхронным HTTP-запросам и таймерам.
+        </p>
+
+        <!-- Quickstart -->
+        <section id="quickstart" class="content-section">
+          <h2>Быстрый старт</h2>
+          <p>
+            Каждый плагин представляет собой отдельный <code>.lua</code> файл. Чтобы запустить свой первый скрипт, достаточно положить его в каталог <code>plugins</code> рядом с исполняемым файлом <code>Telegram.exe</code>.
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/hello_world.lua</span>
+              <button class="copy-btn" data-target="code-hello">Копировать</button>
+            </div>
+            <pre><code id="code-hello">PLUGIN = {
+    name = "Привет, мир!",
+    description = "Демонстрация базового перехвата сообщений",
+    version = "1.0.0",
+    author = "timesplinter"
+}
+
+function on_enable()
+    telegram.ui.show_toast("Плагин успешно включен!")
+end
+
+function on_message_send(text)
+    if text == ".ping" then
+        return "pong! (отправлено через плагин)"
+    end
+    return text
+end</code></pre>
+          </div>
+
+          <div class="callout callout-note">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 8a8 8 0 1116 0A8 8 0 010 8zm8-6.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM6.5 7.75A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"/>
+              </svg>
+            </div>
+            <div class="callout-body">
+              <strong>Обратите внимание:</strong> если вернуть из <code>on_message_send</code> пустую строку <code>""</code>, отправка сообщения будет заблокирована клиентом.
+            </div>
+          </div>
+        </section>
+
+        <!-- Directory Structure -->
+        <section id="directory-structure" class="content-section">
+          <h2>Структура файлов</h2>
+          <p>
+            В папке клиента все ресурсы плагинов хранятся изолированно от пользовательских баз MTProto:
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">Дерево каталогов</span>
+            </div>
+            <pre><code>Telegram.exe              # Исполняемый файл клиента
+lua54.dll                 # Динамическая библиотека среды Lua
+plugins/                  # Рабочая директория плагинов
+  ├── plugins_config.json # Состояние активности плагинов (включен / выключен)
+  ├── custom_theme.lua    # Стилизация и переключение QSS тем
+  ├── mega_tools.lua      # Слэш-команды (/calc, /timer, /quote)
+  └── shrug_and_greeter.lua # Быстрые автозамены смайлов</code></pre>
+          </div>
+        </section>
+
+        <!-- Settings GUI -->
+        <section id="settings-gui" class="content-section">
+          <h2>Интерфейс настроек</h2>
+          <p>
+            В клиенте интегрирован раздел управления плагинами. Откройте <strong>Настройки</strong> (Settings) → выберите раздел <strong>Plugins</strong>.
+          </p>
+          <p>
+            Каждый найденный скрипт отображается в списке отдельной строкой с кнопкой-тумблером:
+          </p>
+          <ul>
+            <li>Переключатель сразу вызывает <code>on_enable()</code> или <code>on_disable()</code> в среде Lua.</li>
+            <li>Выбор сохраняется в <code>plugins_config.json</code> и восстанавливается при следующем перезапуске Telegram.</li>
+            <li>Ошибки выполнения Lua-кода выводятся во всплывающих уведомлениях (Toast) и пишутся в системный <code>log.txt</code>.</li>
+          </ul>
+        </section>
+
+        <!-- Manifest -->
+        <section id="plugin-manifest" class="content-section">
+          <h2>Метаданные PLUGIN</h2>
+          <p>
+            Каждый скрипт объявляет глобальную таблицу <code>PLUGIN</code> в начале файла. Эти данные считываются клиентом при парсинге каталога:
+          </p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Поле</th>
+                  <th>Тип</th>
+                  <th>Обязательное</th>
+                  <th>Описание</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>name</code></td>
+                  <td><span class="badge badge-type">string</span></td>
+                  <td>Да</td>
+                  <td>Имя плагина, выводимое в заголовке настроек.</td>
+                </tr>
+                <tr>
+                  <td><code>description</code></td>
+                  <td><span class="badge badge-type">string</span></td>
+                  <td>Нет</td>
+                  <td>Краткое описание назначения скрипта.</td>
+                </tr>
+                <tr>
+                  <td><code>version</code></td>
+                  <td><span class="badge badge-type">string</span></td>
+                  <td>Нет</td>
+                  <td>Версия (например, <code>"1.0.0"</code>).</td>
+                </tr>
+                <tr>
+                  <td><code>author</code></td>
+                  <td><span class="badge badge-type">string</span></td>
+                  <td>Нет</td>
+                  <td>Автор или никнейм создателя.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Lifecycle Hooks -->
+        <section id="lifecycle-hooks" class="content-section">
+          <h2>Хуки событий (Hooks)</h2>
+          <p>
+            C++ ядро вызывает соответствующие Lua-функции в ключевые моменты жизненного цикла интерфейса и сети:
+          </p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Функция</th>
+                  <th>Аргументы</th>
+                  <th>Возвращаемое значение</th>
+                  <th>Когда вызывается</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>on_enable()</code></td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>При включении плагина в настройках или при старте приложения.</td>
+                </tr>
+                <tr>
+                  <td><code>on_disable()</code></td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>При выключении тумблера плагина пользователем.</td>
+                </tr>
+                <tr>
+                  <td><code>on_message_send(text)</code></td>
+                  <td><code>text</code> (string)</td>
+                  <td><code>string</code> | <code>nil</code></td>
+                  <td>Перед отправкой текста в сеть. Позволяет модифицировать или заблокировать отправку (пустая строка).</td>
+                </tr>
+                <tr>
+                  <td><code>on_message_received(peer_id, text)</code></td>
+                  <td><code>peer_id</code> (int), <code>text</code> (string)</td>
+                  <td>—</td>
+                  <td>При получении нового входящего сообщения в любом открытом диалоге.</td>
+                </tr>
+                <tr>
+                  <td><code>on_command(cmd, args)</code></td>
+                  <td><code>cmd</code> (string), <code>args</code> (string)</td>
+                  <td><code>boolean</code></td>
+                  <td>При вводе текста, начинающегося со слэша (<code>/calc 2+2</code>). Если вернуть <code>true</code>, отправка в чат подавляется.</td>
+                </tr>
+                <tr>
+                  <td><code>on_chat_changed(peer_id)</code></td>
+                  <td><code>peer_id</code> (int)</td>
+                  <td>—</td>
+                  <td>При переключении пользователя на другой чат или канал.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- API: UI -->
+        <section id="api-ui" class="content-section">
+          <h2>telegram.ui</h2>
+          <p>
+            Методы изменения внешнего вида приложения на базе стилей Qt Widgets (QSS), всплывающих подсказок, модальных диалогов и контекстных меню.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.set_style_sheet(qss: string)</code>
+            </div>
+            <p>Устанавливает глобальный стиль приложения (эквивалент <code>qApp->setStyleSheet</code>). Переопределяет любые цвета, скругления, фон и шрифты всех виджетов.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.add_style_sheet(qss: string)</code>
+            </div>
+            <p>Дописывает фрагмент QSS к текущему активному стилю приложения без сброса уже примененных правил.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.show_toast(text: string)</code>
+            </div>
+            <p>Показывает системное всплывающее уведомление Telegram Desktop в нижней части активного окна.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.get_input_text(): string</code>
+            </div>
+            <p>Возвращает текущий черновик текста, набранный пользователем в строке ввода активного чата.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.set_input_text(text: string)</code>
+            </div>
+            <p>Подставляет указанный текст в поле ввода текущего чата.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.add_message_action(title: string, callback: function)</code>
+            </div>
+            <p>
+              Добавляет пользовательский пункт в контекстное меню сообщения (правый клик по сообщению в истории). Функция обратного вызова принимает таблицу с полями сообщения:
+            </p>
+            <ul>
+              <li><code>msg.id</code> (number) — идентификатор сообщения в чате.</li>
+              <li><code>msg.text</code> (string) — текст сообщения.</li>
+              <li><code>msg.peer_id</code> (number) — числовой ID чата или пользователя.</li>
+              <li><code>msg.sender_id</code> (number) — ID автора сообщения.</li>
+              <li><code>msg.is_outgoing</code> (boolean) — <code>true</code> для исходящих сообщений.</li>
+            </ul>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.add_chat_action(title: string, callback: function)</code>
+            </div>
+            <p>
+              Добавляет действие в контекстное меню диалога (правый клик по чату в левом списке). В <code>callback</code> передается таблица с атрибутами чата:
+            </p>
+            <ul>
+              <li><code>chat.id</code> (number) — числовой ID чата.</li>
+              <li><code>chat.name</code> (string) — название диалога, канала или имя пользователя.</li>
+              <li><code>chat.is_user</code> (boolean) — признак личной переписки.</li>
+              <li><code>chat.is_channel</code> (boolean) — признак канала или супергруппы.</li>
+            </ul>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.alert(title: string, text: string)</code>
+            </div>
+            <p>
+              Отображает нативное модальное окно Telegram Desktop поверх интерфейса с заголовком, текстом и кнопкой «OK».
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.confirm(title: string, text: string, callback: function)</code>
+            </div>
+            <p>
+              Открывает нативное диалоговое окно подтверждения с кнопками «Да» и «Отмена». При клике вызывается <code>callback(confirmed: boolean)</code>.
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.ui.prompt(title: string, placeholder: string, default_value: string, callback: function)</code>
+            </div>
+            <p>
+              Открывает нативное окно запроса пользовательского ввода со строковым полем <code>InputField</code>. При нажатии «OK» вызывает <code>callback(input_text: string)</code>.
+            </p>
+          </div>
+        </section>
+
+        <!-- API: Clipboard -->
+        <section id="api-clipboard" class="content-section">
+          <h2>telegram.clipboard</h2>
+          <p>
+            Взаимодействие с системным буфером обмена ОС Windows через <code>QGuiApplication::clipboard()</code>.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.clipboard.get(): string</code>
+            </div>
+            <p>Считывает текущее текстовое содержимое из буфера обмена. Если буфер пуст или содержит нетекстовые данные, возвращает пустую строку.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.clipboard.set(text: string)</code>
+            </div>
+            <p>Помещает переданную текстовую строку в буфер обмена операционной системы.</p>
+          </div>
+        </section>
+
+        <!-- API: Privacy -->
+        <section id="api-privacy" class="content-section">
+          <h2>telegram.privacy</h2>
+          <p>
+            Управление приватностью и сетевыми статусами на уровне ядра клиента. Позволяет читать сообщения без отправки отчетов о прочтении и печатать текст без отображения статуса «печатает...».
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.set_ghost_mode(enable: boolean)</code>
+            </div>
+            <p>
+              Включает или выключает полный режим невидимки («Ghost Mode»). Одновременно активирует подавление статуса набора текста и блокировку отправки отметок о прочтении на серверы Telegram.
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.is_ghost_mode(): boolean</code>
+            </div>
+            <p>Возвращает <code>true</code>, если полный режим невидимки активен.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.set_typing_blocked(enable: boolean)</code>
+            </div>
+            <p>
+              Подавляет отправку исходящего статуса набора текста (<code>SendProgressManager::send</code>). Собеседники в любых чатах не видят индикатор набора сообщения.
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.is_typing_blocked(): boolean</code>
+            </div>
+            <p>Возвращает текущее состояние блокировки статуса набора текста.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.set_read_blocked(enable: boolean)</code>
+            </div>
+            <p>
+              Перехватывает и блокирует отправку серверных запросов прочтения (<code>Histories::sendReadRequests</code>). Вы можете открывать любые диалоги и просматривать историю сообщений, а для собеседников они останутся непрочитанными (одна галочка).
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.privacy.is_read_blocked(): boolean</code>
+            </div>
+            <p>Возвращает текущее состояние блокировки отчетов о прочтении.</p>
+          </div>
+        </section>
+
+        <!-- API: Messages -->
+        <section id="api-messages" class="content-section">
+          <h2>telegram.messages</h2>
+          <p>
+            Прямое управление сообщениями через сессионный контроллер клиента.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.messages.send(peer_id: number, text: string)</code>
+            </div>
+            <p>Отправляет новое текстовое сообщение в указанный диалог по его <code>peer_id</code>.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.messages.edit(peer_id: number, msg_id: number, text: string)</code>
+            </div>
+            <p>Редактирует ранее отправленное сообщение с идентификатором <code>msg_id</code>.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.messages.delete(peer_id: number, msg_id: number)</code>
+            </div>
+            <p>Удаляет сообщение из локальной истории и на сервере.</p>
+          </div>
+        </section>
+
+        <!-- API: Commands -->
+        <section id="api-commands" class="content-section">
+          <h2>telegram.command & Слэш-команды</h2>
+          <p>
+            Обработка пользовательских команд со слэшем (<code>/command args</code>). Вызывается через глобальный хук <code>on_command(cmd, args)</code>.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>on_command(cmd: string, args: string): boolean</code>
+            </div>
+            <p>
+              Перехватывает отправку команды в поле ввода. Если функция возвращает <code>true</code>, отправка сообщения в чат прерывается (команда выполняется локально). Если возвращает <code>false</code> или <code>nil</code>, текст отправляется как обычное сообщение.
+            </p>
+          </div>
+        </section>
+
+        <!-- API: Timer -->
+        <section id="api-timer" class="content-section">
+          <h2>telegram.timer</h2>
+          <p>
+            Безопасные таймеры, синхронизированные с главным циклом событий Qt (Main Thread).
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.timer.set_timeout(delay_ms: number, callback: function): number</code>
+            </div>
+            <p>Вызывает функцию <code>callback</code> один раз через указанное количество миллисекунд. Возвращает числовой дескриптор таймера.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.timer.set_interval(interval_ms: number, callback: function): number</code>
+            </div>
+            <p>Вызывает функцию циклически каждые <code>interval_ms</code> миллисекунд.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.timer.clear_timeout(id: number) / clear_interval(id: number)</code>
+            </div>
+            <p>Останавливает и удаляет активный таймер по его ID.</p>
+          </div>
+        </section>
+
+        <!-- API: HTTP -->
+        <section id="api-http" class="content-section">
+          <h2>telegram.http</h2>
+          <p>
+            Асинхронные сетевые запросы через <code>QNetworkAccessManager</code>. Запросы не блокируют интерфейс клиента.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.http.get(url: string, headers: table, callback: function)</code>
+            </div>
+            <p>
+              Выполняет GET-запрос. В функцию обратного вызова передаются два параметра: <code>callback(response_body, http_status)</code>.
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.http.post(url: string, headers: table, body: string, callback: function)</code>
+            </div>
+            <p>
+              Выполняет POST-запрос с телом <code>body</code>. Обратный вызов имеет аналогичную сигнатуру <code>callback(response_body, http_status)</code>.
+            </p>
+          </div>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">Пример асинхронного запроса</span>
+              <button class="copy-btn" data-target="code-http-example">Копировать</button>
+            </div>
+            <pre><code id="code-http-example">telegram.http.get("https://api.github.com/zen", { ["User-Agent"] = "TelegramPlugin" }, function(body, status)
+    if status == 200 then
+        telegram.ui.show_toast("Мудрость дня: " .. body)
+    else
+        telegram.ui.show_toast("Ошибка HTTP: " .. tostring(status))
+    end
+end)</code></pre>
+          </div>
+        </section>
+
+        <!-- API: Storage -->
+        <section id="api-storage" class="content-section">
+          <h2>telegram.storage</h2>
+          <p>
+            Изолированное хранилище ключ-значение для каждого плагина. Данные сохраняются в формате JSON в папке плагинов.
+          </p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.storage.set(key: string, value: any)</code>
+            </div>
+            <p>Сохраняет значение (строку, число, булево значение или таблицу) под указанным ключом.</p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.storage.get(key: string): any</code>
+            </div>
+            <p>Считывает ранее сохраненное значение или возвращает <code>nil</code>, если ключ отсутствует.</p>
+          </div>
+        </section>
+
+        <!-- API: Context -->
+        <section id="api-context" class="content-section">
+          <h2>telegram.user & telegram.chat</h2>
+          <p>Инспекция активного контекста пользователя и текущего открытого диалога.</p>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.user.get_me(): table</code>
+            </div>
+            <p>
+              Возвращает таблицу с полями авторизованного аккаунта: <code>id</code>, <code>first_name</code>, <code>last_name</code>, <code>username</code>, <code>phone</code>.
+            </p>
+          </div>
+
+          <div class="api-card">
+            <div class="api-signature">
+              <code>telegram.chat.get_active_chat(): table</code>
+            </div>
+            <p>
+              Возвращает информацию об открытом чате: <code>id</code>, <code>title</code>, <code>type</code> (<code>"user"</code>, <code>"chat"</code>, <code>"channel"</code>). Если чат не открыт, возвращает <code>nil</code>.
+            </p>
+          </div>
+        </section>
+
+        <!-- Examples: Custom Theme -->
+        <section id="example-theme" class="content-section">
+          <h2>Пример: Кастомизация темы и QSS</h2>
+          <p>
+            Плагин <code>custom_theme.lua</code> позволяет мгновенно менять внешний вид клиента с помощью стилей Qt или передавать произвольные CSS-свойства командой <code>/css &lt;правила&gt;</code>.
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/custom_theme.lua</span>
+              <button class="copy-btn" data-target="code-theme">Копировать</button>
+            </div>
+            <pre><code id="code-theme">PLUGIN = {
+    name = "UI & Theme Stylist",
+    description = "Инъекция QSS и кастомные стили (/theme cyberpunk, /css ...)",
+    version = "1.0.0"
+}
+
+local THEMES = {
+    cyberpunk = [[
+        QMainWindow, QWidget {
+            background-color: #0d0221;
+            color: #00f0ff;
+            font-family: 'Consolas', 'Segoe UI';
+        }
+        QLineEdit, QTextEdit {
+            background-color: #1a0840;
+            color: #ff007f;
+            border: 1px solid #00f0ff;
+            border-radius: 6px;
+        }
+    ]],
+    reset = ""
+}
+
+function on_command(cmd, args)
+    if cmd == "/theme" or cmd == "theme" then
+        local name = args:gsub("^%s*(.-)%s*$", "%1")
+        if THEMES[name] ~= nil then
+            telegram.ui.set_style_sheet(THEMES[name])
+            telegram.ui.show_toast("Тема изменена: " .. name)
+            return true
+        end
+    elseif cmd == "/css" or cmd == "css" then
+        telegram.ui.add_style_sheet(args)
+        telegram.ui.show_toast("CSS применен")
+        return true
+    end
+    return false
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Examples: Context Menus and Dialogs -->
+        <section id="example-context-menus" class="content-section">
+          <h2>Пример: Контекстные меню и нативные диалоги</h2>
+          <p>
+            Плагин <code>context_and_privacy.lua</code> демонстрирует регистрацию действий в меню сообщений и диалогов, интерактивные модальные окна ввода (prompt) и работу с системным буфером обмена.
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/context_and_privacy.lua</span>
+              <button class="copy-btn" data-target="code-actions">Копировать</button>
+            </div>
+            <pre><code id="code-actions">PLUGIN = {
+    name = "UI Actions & Menus",
+    description = "Контекстные меню для сообщений и чатов, диалоги ввода и буфер обмена",
+    version = "1.0.0",
+    author = "timesplinter"
+}
+
+function on_enable()
+    -- Добавляем пункт в контекстное меню сообщения
+    telegram.ui.add_message_action("Скопировать ID и текст", function(msg)
+        local formatted = string.format("[Msg #%s (Peer %s)]: %s", tostring(msg.id), tostring(msg.peer_id), msg.text)
+        telegram.clipboard.set(formatted)
+        telegram.ui.show_toast("Скопировано в буфер!")
+    end)
+
+    -- Быстрый нативный промпт для цитаты
+    telegram.ui.add_message_action("Создать цитату...", function(msg)
+        telegram.ui.prompt("Цитата сообщения", "Введите комментарий...", "> " .. msg.text, function(comment)
+            if comment and #comment > 0 then
+                telegram.ui.set_input_text(comment)
+            end
+        end)
+    end)
+
+    -- Действие в контекстном меню списка диалогов (слева)
+    telegram.ui.add_chat_action("Инфо о чате", function(chat)
+        local info = string.format("Чат: %s\nID: %s\nТип: %s",
+            chat.name,
+            tostring(chat.id),
+            chat.is_channel and "Канал / Супергруппа" or (chat.is_user and "Личный диалог" or "Группа")
+        )
+        telegram.ui.alert("Параметры чата", info)
+    end)
+
+    telegram.ui.show_toast("UI Actions плагин готов!")
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Examples: Ghost Mode & Privacy -->
+        <section id="example-ghost-mode" class="content-section">
+          <h2>Пример: Режим невидимки (Ghost Mode)</h2>
+          <p>
+            Управление сетевыми индикаторами конфиденциальности через слэш-команды. Позволяет читать любые чаты без отправки отчетов о прочтении и скрывать статус набора текста.
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/ghost_mode.lua</span>
+              <button class="copy-btn" data-target="code-ghost">Копировать</button>
+            </div>
+            <pre><code id="code-ghost">PLUGIN = {
+    name = "Ghost Mode & Privacy",
+    description = "Скрытие статуса печати и отметок о прочтении (/ghost, /notyping, /noread)",
+    version = "1.0.0"
+}
+
+function on_command(cmd, args)
+    if cmd == "/ghost" or cmd == "ghost" then
+        local current = telegram.privacy.is_ghost_mode()
+        local next_state = not current
+        telegram.privacy.set_ghost_mode(next_state)
+        telegram.ui.show_toast(next_state and "Ghost Mode: ВКЛЮЧЕН (невидимка)" or "Ghost Mode: ВЫКЛЮЧЕН")
+        return true
+    elseif cmd == "/notyping" or cmd == "notyping" then
+        local current = telegram.privacy.is_typing_blocked()
+        telegram.privacy.set_typing_blocked(not current)
+        telegram.ui.show_toast("Скрытие набора: " .. (not current and "ВКЛ" or "ВЫКЛ"))
+        return true
+    elseif cmd == "/noread" or cmd == "noread" then
+        local current = telegram.privacy.is_read_blocked()
+        telegram.privacy.set_read_blocked(not current)
+        telegram.ui.show_toast("Скрытие прочтений: " .. (not current and "ВКЛ" or "ВЫКЛ"))
+        return true
+    end
+    return false
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Examples: Mega Tools -->
+        <section id="example-tools" class="content-section">
+          <h2>Пример: Слэш-команды, таймеры и калькулятор</h2>
+          <p>
+            Демонстрация вычисления математических выражений <code>/calc</code>, чтения профиля <code>/whoami</code> и отложенных напоминаний через <code>telegram.timer</code>:
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/mega_tools.lua</span>
+              <button class="copy-btn" data-target="code-tools">Копировать</button>
+            </div>
+            <pre><code id="code-tools">PLUGIN = {
+    name = "Mega Tools",
+    description = "Команды /calc, /whoami, /timer",
+    version = "1.0.0"
+}
+
+function on_command(cmd, args)
+    if cmd == "/calc" or cmd == "calc" then
+        local fn, err = load("return " .. args)
+        if fn then
+            local ok, res = pcall(fn)
+            if ok then
+                telegram.ui.set_input_text("Результат: " .. tostring(res))
+            else
+                telegram.ui.show_toast("Ошибка расчета: " .. tostring(res))
+            end
+        end
+        return true
+    elseif cmd == "/whoami" or cmd == "whoami" then
+        local me = telegram.user.get_me()
+        telegram.ui.show_toast(string.format("Я: %s (@%s), ID: %s", me.first_name, me.username or "нет", tostring(me.id)))
+        return true
+    end
+    return false
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Examples: Message Modifiers -->
+        <section id="example-shrug" class="content-section">
+          <h2>Пример: Модификаторы сообщений и сокращения</h2>
+          <p>
+            Автоматическая замена текстовых сокращений (<code>.shrug</code>, <code>.ping</code>, <code>.lenny</code>) перед отправкой в сеть с помощью хука <code>on_message_send</code>.
+          </p>
+
+          <div class="code-box">
+            <div class="code-header">
+              <span class="code-lang">plugins/shrug_and_greeter.lua</span>
+              <button class="copy-btn" data-target="code-shrug">Копировать</button>
+            </div>
+            <pre><code id="code-shrug">PLUGIN = {
+    name = "Auto Shrug & Greeter",
+    description = "Заменяет сокращения .shrug, .lenny, .ping перед отправкой",
+    version = "1.0.0",
+    author = "Community"
+}
+
+function on_message_send(text)
+    if text == ".shrug" then
+        return "¯\\_(ツ)_/¯"
+    elseif text == ".lenny" then
+        return "( ͡° ͜ʖ ͡°)"
+    elseif text == ".ping" then
+        return "Pong! (отправлено через Lua)"
+    end
+    return text
+end
+
+function on_message_received(peer_id, text)
+    if text and text:lower():find("привет") then
+        telegram.ui.show_toast("Новое приветствие в чате #" .. tostring(peer_id))
+    end
+end</code></pre>
+          </div>
+        </section>
+
+        <!-- Gotchas: Lifecycle -->
+        <section id="gotchas-lifecycle" class="content-section">
+          <h2>Тонкости запуска и безопасность</h2>
+          <p>
+            В клиентах на Qt вызовы виджетов до момента создания главного окна ведут к аварийному завершению. В текущей версии ядра приняты следующие меры:
+          </p>
+          <div class="callout callout-warning">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0114.082 15H1.918a1.75 1.75 0 01-1.543-2.575L6.457 1.047zM8 5a.75.75 0 00-.75.75v3.5a.75.75 0 001.5 0v-3.5A.75.75 0 008 5zm0 6.5a1 1 0 100-2 1 1 0 000 2z"/>
+              </svg>
+            </div>
+            <div class="callout-body">
+              <strong>Отложенная стилизация:</strong> если плагин вызывает <code>set_style_sheet</code> внутри <code>on_enable()</code> во время первоначального старта клиента, стиль встает в безопасную очередь и применяется только после того, как <code>SessionController</code> и окно авторизации сформированы. Это исключает падения драйвера ANGLE OpenGL.
+            </div>
+          </div>
+        </section>
+
+        <!-- Gotchas: Crashes -->
+        <section id="gotchas-crashes" class="content-section">
+          <h2>Изоляция сбоев и типичные ошибки</h2>
+          <p>
+            Среда выполнения Lua 5.4 изолирована от крашей: синтаксические и рантайм ошибки скриптов оборачиваются через <code>pcall</code> / <code>lua_pcall</code> и логируются в файл <code>log.txt</code> в каталоге клиента.
+          </p>
+          <div class="callout callout-note">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 8a8 8 0 1116 0A8 8 0 010 8zm8-6.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM6.5 7.75A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2.5a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"/>
+              </svg>
+            </div>
+            <div class="callout-body">
+              <strong>Главный поток Qt:</strong> сетевые колбэки и системные диалоги автоматически синхронизируются с главным потоком приложения через диспетчер <code>crl::on_main</code>, что предотвращает гонки данных и падения при работе с памятью виджетов.
+            </div>
+          </div>
+        </section>
+      </article>
+
+      <!-- Footer -->
+      <footer class="docs-footer">
+        <div class="footer-left">
+          <span>Разработано для Telegram Desktop с поддержкой Lua-плагинов.</span>
+        </div>
+        <div class="footer-right">
+          <a href="#quickstart">Наверх ↑</a>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Right Sidebar (TOC) -->
+    <aside class="sidebar-right">
+      <div class="toc-container">
+        <div class="toc-title">На этой странице</div>
+        <ul class="toc-list" id="tocList">
+          <li><a href="#quickstart" class="toc-link active">Быстрый старт</a></li>
+          <li><a href="#directory-structure" class="toc-link">Структура файлов</a></li>
+          <li><a href="#settings-gui" class="toc-link">Интерфейс настроек</a></li>
+          <li><a href="#plugin-manifest" class="toc-link">Метаданные PLUGIN</a></li>
+          <li><a href="#lifecycle-hooks" class="toc-link">Хуки событий (Hooks)</a></li>
+          <li><a href="#api-ui" class="toc-link">telegram.ui</a></li>
+          <li><a href="#api-clipboard" class="toc-link">telegram.clipboard</a></li>
+          <li><a href="#api-privacy" class="toc-link">telegram.privacy</a></li>
+          <li><a href="#api-messages" class="toc-link">telegram.messages</a></li>
+          <li><a href="#api-timer" class="toc-link">telegram.timer</a></li>
+          <li><a href="#api-http" class="toc-link">telegram.http</a></li>
+          <li><a href="#api-storage" class="toc-link">telegram.storage</a></li>
+          <li><a href="#api-context" class="toc-link">telegram.user & chat</a></li>
+          <li><a href="#example-theme" class="toc-link">Пример: Кастомизация темы</a></li>
+          <li><a href="#example-context-menus" class="toc-link">Пример: Контекстные меню</a></li>
+          <li><a href="#example-ghost-mode" class="toc-link">Пример: Ghost Mode</a></li>
+          <li><a href="#example-tools" class="toc-link">Пример: Слэш-команды</a></li>
+          <li><a href="#gotchas-lifecycle" class="toc-link">Тонкости запуска</a></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Search Modal -->
+  <div class="search-modal-backdrop" id="searchModal">
+    <div class="search-modal-box">
+      <div class="search-modal-header">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M11.5 7a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Поиск функций, хуков, примеров..." autocomplete="off">
+        <kbd class="modal-esc">Esc</kbd>
+      </div>
+      <div class="search-results-list" id="searchResults">
+        <!-- Dynamic results populate here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
