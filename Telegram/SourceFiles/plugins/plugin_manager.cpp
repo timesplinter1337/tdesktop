@@ -528,9 +528,15 @@ int Lua_Storage_All(lua_State *L) {
 	return 1;
 }
 
+PluginManager *GlobalPluginManager = nullptr;
+
 } // namespace
 
 PluginManager::PluginManager() {
+	GlobalPluginManager = this;
+}
+
+void PluginManager::init() {
 	ensurePluginsDirectoryExists();
 	LuaCore::Instance().initialize();
 	reloadPlugins();
@@ -545,10 +551,22 @@ PluginManager::~PluginManager() {
 			plugin.L = nullptr;
 		}
 	}
+	if (GlobalPluginManager == this) {
+		GlobalPluginManager = nullptr;
+	}
 }
 
 PluginManager &PluginManager::Instance() {
+	if (GlobalPluginManager) {
+		return *GlobalPluginManager;
+	}
 	static PluginManager instance;
+	GlobalPluginManager = &instance;
+	static bool initialized = false;
+	if (!initialized) {
+		initialized = true;
+		instance.init();
+	}
 	return instance;
 }
 

@@ -171,6 +171,7 @@ private:
 	PluginManager();
 	~PluginManager();
 
+	void init();
 	void registerTelegramAPI(lua_State *L);
 	void loadPluginFile(const QString &filePath, bool isEnabled = true);
 	void ensurePluginsDirectoryExists();
