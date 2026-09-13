@@ -43,6 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/menu/menu_action.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/menu/menu_common.h"
+#include "plugins/plugin_manager.h"
 #include "ui/widgets/menu/menu_multiline_action.h"
 #include "ui/widgets/menu/menu_separator.h"
 #include "ui/image/image.h"
@@ -1980,6 +1981,10 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 
 	// Build the full message menu.
 	FillContextMenuItems(result, list, request, hasPollOption);
+
+	if (item) {
+		Plugins::PluginManager::Instance().fillMessageContextMenu(result, item);
+	}
 
 	if (item) {
 		const auto media = item->media();

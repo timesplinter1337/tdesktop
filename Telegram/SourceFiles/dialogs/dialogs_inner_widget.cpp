@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_subsection_tabs.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "plugins/plugin_manager.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
 #include "core/shortcuts.h"
@@ -3958,6 +3959,9 @@ void InnerWidget::contextMenuEvent(QContextMenuEvent *e) {
 				.filterId = _filterId,
 			},
 			addAction);
+	}
+	if (const auto peer = row.key.peer()) {
+		Plugins::PluginManager::Instance().fillChatContextMenu(_menu.get(), peer);
 	}
 	QObject::connect(_menu.get(), &QObject::destroyed, [=] {
 		if (_menuRow.key) {

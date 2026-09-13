@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "window/notifications_manager.h"
 #include "history/history.h"
+#include "plugins/plugin_manager.h"
 #include "history/history_item.h"
 #include "history/history_item_helpers.h"
 #include "history/view/history_view_element.h"
@@ -741,6 +742,10 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
 			sendReadRequests();
 			finish();
 		};
+		if (Plugins::PluginManager::Instance().isReadBlocked()) {
+			finished();
+			return 0;
+		}
 		if (const auto channel = history->peer->asChannel()) {
 			return session().api().request(MTPchannels_ReadHistory(
 				channel->inputChannel(),

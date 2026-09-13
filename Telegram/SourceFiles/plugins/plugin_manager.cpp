@@ -39,6 +39,13 @@
 #include "data/data_histories.h"
 #include "apiwrap.h"
 #include "ui/toast/toast.h"
+#include "ui/layers/generic_box.h"
+#include "ui/widgets/labels.h"
+#include "ui/widgets/fields/input_field.h"
+#include "ui/widgets/popup_menu.h"
+#include "lang/lang_keys.h"
+#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "logs.h"
 
 namespace Plugins {
@@ -112,6 +119,125 @@ int Lua_UI_OpenUrl(lua_State *L) {
 	const auto url = core.toString(L, 1);
 	PluginManager::Instance().openUrl(url);
 	return 0;
+}
+
+int Lua_UI_AddMessageAction(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto title = core.toString(L, 1);
+	if (core.isFunction(L, 2)) {
+		core.pushValue(L, 2);
+		const int cbRef = core.ref(L);
+		PluginManager::Instance().addMessageAction(L, title, cbRef);
+	}
+	return 0;
+}
+
+int Lua_UI_AddChatAction(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto title = core.toString(L, 1);
+	if (core.isFunction(L, 2)) {
+		core.pushValue(L, 2);
+		const int cbRef = core.ref(L);
+		PluginManager::Instance().addChatAction(L, title, cbRef);
+	}
+	return 0;
+}
+
+int Lua_UI_Alert(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto title = (core.getTop(L) >= 2) ? core.toString(L, 1) : u"Telegram Plugin"_q;
+	const auto text = (core.getTop(L) >= 2) ? core.toString(L, 2) : core.toString(L, 1);
+	crl::on_main([=] {
+		PluginManager::Instance().showAlert(title, text);
+	});
+	return 0;
+}
+
+int Lua_UI_Confirm(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto title = (core.getTop(L) >= 3) ? core.toString(L, 1) : u"Подтверждение"_q;
+	const auto text = (core.getTop(L) >= 3) ? core.toString(L, 2) : core.toString(L, 1);
+	const int cbIdx = (core.getTop(L) >= 3) ? 3 : 2;
+	if (core.isFunction(L, cbIdx)) {
+		core.pushValue(L, cbIdx);
+		const int cbRef = core.ref(L);
+		crl::on_main([=] {
+			PluginManager::Instance().showConfirm(L, title, text, cbRef);
+		});
+	}
+	return 0;
+}
+
+int Lua_UI_Prompt(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto title = core.toString(L, 1);
+	const auto placeholder = (core.getTop(L) >= 3) ? core.toString(L, 2) : QString();
+	const int cbIdx = (core.getTop(L) >= 3) ? 3 : 2;
+	if (core.isFunction(L, cbIdx)) {
+		core.pushValue(L, cbIdx);
+		const int cbRef = core.ref(L);
+		crl::on_main([=] {
+			PluginManager::Instance().showPrompt(L, title, placeholder, cbRef);
+		});
+	}
+	return 0;
+}
+
+// C-callbacks for Lua: telegram.clipboard
+int Lua_Clipboard_Get(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto text = QGuiApplication::clipboard() ? QGuiApplication::clipboard()->text() : QString();
+	core.pushString(L, text);
+	return 1;
+}
+
+int Lua_Clipboard_Set(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const auto text = core.toString(L, 1);
+	if (QGuiApplication::clipboard()) {
+		QGuiApplication::clipboard()->setText(text);
+	}
+	return 0;
+}
+
+// C-callbacks for Lua: telegram.privacy
+int Lua_Privacy_SetGhostMode(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const bool enabled = core.toBoolean(L, 1);
+	PluginManager::Instance().setGhostMode(enabled);
+	return 0;
+}
+
+int Lua_Privacy_IsGhostMode(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	core.pushBoolean(L, PluginManager::Instance().isGhostMode());
+	return 1;
+}
+
+int Lua_Privacy_SetTypingBlocked(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const bool blocked = core.toBoolean(L, 1);
+	PluginManager::Instance().setTypingBlocked(blocked);
+	return 0;
+}
+
+int Lua_Privacy_IsTypingBlocked(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	core.pushBoolean(L, PluginManager::Instance().isTypingBlocked());
+	return 1;
+}
+
+int Lua_Privacy_SetReadBlocked(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	const bool blocked = core.toBoolean(L, 1);
+	PluginManager::Instance().setReadBlocked(blocked);
+	return 0;
+}
+
+int Lua_Privacy_IsReadBlocked(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	core.pushBoolean(L, PluginManager::Instance().isReadBlocked());
+	return 1;
 }
 
 // C-callbacks for Lua: telegram.chat
@@ -515,14 +641,35 @@ void PluginManager::registerTelegramAPI(lua_State *L) {
 	core.setFieldFunction(L, "show_toast", Lua_ShowToast);
 
 	// telegram.ui
-	core.createTable(L, 0, 8);
+	core.createTable(L, 0, 16);
 	core.setFieldFunction(L, "set_style_sheet", Lua_UI_SetStyleSheet);
 	core.setFieldFunction(L, "add_style_sheet", Lua_UI_AddStyleSheet);
 	core.setFieldFunction(L, "get_style_sheet", Lua_UI_GetStyleSheet);
 	core.setFieldFunction(L, "show_toast", Lua_UI_ShowToast);
 	core.setFieldFunction(L, "copy", Lua_UI_Copy);
 	core.setFieldFunction(L, "open_url", Lua_UI_OpenUrl);
+	core.setFieldFunction(L, "add_message_action", Lua_UI_AddMessageAction);
+	core.setFieldFunction(L, "add_chat_action", Lua_UI_AddChatAction);
+	core.setFieldFunction(L, "alert", Lua_UI_Alert);
+	core.setFieldFunction(L, "confirm", Lua_UI_Confirm);
+	core.setFieldFunction(L, "prompt", Lua_UI_Prompt);
 	core.setField(L, -2, "ui");
+
+	// telegram.clipboard
+	core.createTable(L, 0, 4);
+	core.setFieldFunction(L, "get", Lua_Clipboard_Get);
+	core.setFieldFunction(L, "set", Lua_Clipboard_Set);
+	core.setField(L, -2, "clipboard");
+
+	// telegram.privacy
+	core.createTable(L, 0, 8);
+	core.setFieldFunction(L, "set_ghost_mode", Lua_Privacy_SetGhostMode);
+	core.setFieldFunction(L, "is_ghost_mode", Lua_Privacy_IsGhostMode);
+	core.setFieldFunction(L, "set_typing_blocked", Lua_Privacy_SetTypingBlocked);
+	core.setFieldFunction(L, "is_typing_blocked", Lua_Privacy_IsTypingBlocked);
+	core.setFieldFunction(L, "set_read_blocked", Lua_Privacy_SetReadBlocked);
+	core.setFieldFunction(L, "is_read_blocked", Lua_Privacy_IsReadBlocked);
+	core.setField(L, -2, "privacy");
 
 	// telegram.chat
 	core.createTable(L, 0, 8);
@@ -533,6 +680,10 @@ void PluginManager::registerTelegramAPI(lua_State *L) {
 	core.setFieldFunction(L, "edit_message", Lua_Chat_EditMessage);
 	core.setFieldFunction(L, "delete_message", Lua_Chat_DeleteMessage);
 	core.setField(L, -2, "chat");
+
+	// telegram.messages (alias for telegram.chat)
+	core.getField(L, -1, "chat");
+	core.setField(L, -2, "messages");
 
 	// telegram.input
 	core.createTable(L, 0, 4);
@@ -664,10 +815,13 @@ void PluginManager::reloadPlugins() {
 	for (auto &p : _plugins) {
 		if (p.L) {
 			clearTimersForState(p.L);
+			clearActionsForState(p.L);
 			core.closeState(p.L);
 			p.L = nullptr;
 		}
 	}
+	_messageActions.clear();
+	_chatActions.clear();
 	_plugins.clear();
 
 	ensurePluginsDirectoryExists();
@@ -1302,6 +1456,252 @@ PluginInfo *PluginManager::findPluginByState(lua_State *L) {
 		}
 	}
 	return nullptr;
+}
+
+void PluginManager::addMessageAction(lua_State *L, const QString &title, int cbRef) {
+	_messageActions.push_back(MessageAction{
+		.title = title,
+		.L = L,
+		.cbRef = cbRef,
+	});
+}
+
+void PluginManager::addChatAction(lua_State *L, const QString &title, int cbRef) {
+	_chatActions.push_back(ChatAction{
+		.title = title,
+		.L = L,
+		.cbRef = cbRef,
+	});
+}
+
+void PluginManager::clearActionsForState(lua_State *L) {
+	auto &core = LuaCore::Instance();
+	for (auto it = _messageActions.begin(); it != _messageActions.end(); ) {
+		if (it->L == L) {
+			core.unref(L, it->cbRef);
+			it = _messageActions.erase(it);
+		} else {
+			++it;
+		}
+	}
+	for (auto it = _chatActions.begin(); it != _chatActions.end(); ) {
+		if (it->L == L) {
+			core.unref(L, it->cbRef);
+			it = _chatActions.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
+
+void PluginManager::fillMessageContextMenu(not_null<Ui::PopupMenu*> menu, not_null<HistoryItem*> item) {
+	if (_messageActions.empty()) {
+		return;
+	}
+
+	const auto itemId = item->id.bare;
+	const auto peerId = item->history()->peer->id.value;
+	const auto text = item->originalText().text;
+	const auto senderName = item->from() ? item->from()->name() : QString();
+	const auto date = static_cast<int>(item->date());
+	const auto out = item->out();
+
+	for (const auto &action : _messageActions) {
+		menu->addAction(action.title, [=] {
+			crl::on_main([=] {
+				dispatchMessageAction(action, itemId, peerId, text, senderName, date, out);
+			});
+		});
+	}
+}
+
+void PluginManager::dispatchMessageAction(
+		const MessageAction &action,
+		int itemId,
+		uint64 peerId,
+		const QString &text,
+		const QString &senderName,
+		int date,
+		bool out) {
+	auto &core = LuaCore::Instance();
+	lua_State *L = action.L;
+	if (!L) return;
+
+	core.pushRef(L, action.cbRef);
+	if (!core.isFunction(L, -1)) {
+		core.pop(L, 1);
+		return;
+	}
+
+	core.createTable(L, 0, 6);
+	core.setFieldInteger(L, "id", itemId);
+	core.setFieldInteger(L, "peer_id", static_cast<int64_t>(peerId));
+	core.setFieldString(L, "text", text);
+	core.setFieldString(L, "sender_name", senderName);
+	core.setFieldInteger(L, "date", date);
+	core.setFieldBoolean(L, "is_outgoing", out);
+
+	QString err;
+	if (!core.pcall(L, 1, 0, err)) {
+		LOG(("Plugin Error in message action '%1': %2").arg(action.title, err));
+	}
+}
+
+void PluginManager::fillChatContextMenu(not_null<Ui::PopupMenu*> menu, not_null<PeerData*> peer) {
+	if (_chatActions.empty()) {
+		return;
+	}
+
+	const auto peerId = peer->id.value;
+	const auto title = peer->name();
+	const auto username = peer->username();
+	const auto isUser = peer->isUser();
+	const auto isGroup = peer->isChat() || peer->isMegagroup();
+	const auto isChannel = peer->isChannel() && !peer->isMegagroup();
+
+	for (const auto &action : _chatActions) {
+		menu->addAction(action.title, [=] {
+			crl::on_main([=] {
+				dispatchChatAction(action, peerId, title, username, isUser, isGroup, isChannel);
+			});
+		});
+	}
+}
+
+void PluginManager::dispatchChatAction(
+		const ChatAction &action,
+		uint64 peerId,
+		const QString &title,
+		const QString &username,
+		bool isUser,
+		bool isGroup,
+		bool isChannel) {
+	auto &core = LuaCore::Instance();
+	lua_State *L = action.L;
+	if (!L) return;
+
+	core.pushRef(L, action.cbRef);
+	if (!core.isFunction(L, -1)) {
+		core.pop(L, 1);
+		return;
+	}
+
+	core.createTable(L, 0, 7);
+	core.setFieldInteger(L, "id", static_cast<int64_t>(peerId));
+	core.setFieldString(L, "title", title);
+	if (!username.isEmpty()) {
+		core.setFieldString(L, "username", username);
+	}
+	core.setFieldString(L, "type", isUser ? "user" : (isChannel ? "channel" : "group"));
+	core.setFieldBoolean(L, "is_user", isUser);
+	core.setFieldBoolean(L, "is_group", isGroup);
+	core.setFieldBoolean(L, "is_channel", isChannel);
+
+	QString err;
+	if (!core.pcall(L, 1, 0, err)) {
+		LOG(("Plugin Error in chat action '%1': %2").arg(action.title, err));
+	}
+}
+
+void PluginManager::showAlert(const QString &title, const QString &text) {
+	if (!_sessionController) return;
+	_sessionController->show(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setTitle(rpl::single(title));
+		box->addRow(object_ptr<Ui::FlatLabel>(box, text, st::boxLabel));
+		box->addButton(tr::lng_box_ok(), [=] { box->closeBox(); });
+	}));
+}
+
+void PluginManager::showConfirm(lua_State *L, const QString &title, const QString &text, int cbRef) {
+	if (!_sessionController) return;
+	_sessionController->show(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setTitle(rpl::single(title));
+		box->addRow(object_ptr<Ui::FlatLabel>(box, text, st::boxLabel));
+		box->addButton(tr::lng_box_ok(), [=] {
+			auto &core = LuaCore::Instance();
+			core.pushRef(L, cbRef);
+			if (core.isFunction(L, -1)) {
+				core.pushBoolean(L, true);
+				QString err;
+				core.pcall(L, 1, 0, err);
+			}
+			core.unref(L, cbRef);
+			box->closeBox();
+		});
+		box->addButton(tr::lng_cancel(), [=] {
+			auto &core = LuaCore::Instance();
+			core.pushRef(L, cbRef);
+			if (core.isFunction(L, -1)) {
+				core.pushBoolean(L, false);
+				QString err;
+				core.pcall(L, 1, 0, err);
+			}
+			core.unref(L, cbRef);
+			box->closeBox();
+		});
+	}));
+}
+
+void PluginManager::showPrompt(lua_State *L, const QString &title, const QString &placeholder, int cbRef) {
+	if (!_sessionController) return;
+	_sessionController->show(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setTitle(rpl::single(title));
+		const auto field = box->addRow(object_ptr<Ui::InputField>(
+			box,
+			st::defaultInputField,
+			rpl::single(placeholder),
+			QString()));
+		box->setFocusCallback([=] { field->setFocusFast(); });
+		box->addButton(tr::lng_box_ok(), [=] {
+			const auto val = field->getLastText();
+			auto &core = LuaCore::Instance();
+			core.pushRef(L, cbRef);
+			if (core.isFunction(L, -1)) {
+				core.pushString(L, val);
+				QString err;
+				core.pcall(L, 1, 0, err);
+			}
+			core.unref(L, cbRef);
+			box->closeBox();
+		});
+		box->addButton(tr::lng_cancel(), [=] {
+			auto &core = LuaCore::Instance();
+			core.pushRef(L, cbRef);
+			if (core.isFunction(L, -1)) {
+				core.pushNil(L);
+				QString err;
+				core.pcall(L, 1, 0, err);
+			}
+			core.unref(L, cbRef);
+			box->closeBox();
+		});
+	}));
+}
+
+bool PluginManager::isGhostMode() const {
+	return _ghostMode;
+}
+
+void PluginManager::setGhostMode(bool enabled) {
+	_ghostMode = enabled;
+	_typingBlocked = enabled;
+	_readBlocked = enabled;
+}
+
+bool PluginManager::isTypingBlocked() const {
+	return _typingBlocked;
+}
+
+void PluginManager::setTypingBlocked(bool blocked) {
+	_typingBlocked = blocked;
+}
+
+bool PluginManager::isReadBlocked() const {
+	return _readBlocked;
+}
+
+void PluginManager::setReadBlocked(bool blocked) {
+	_readBlocked = blocked;
 }
 
 } // namespace Plugins
